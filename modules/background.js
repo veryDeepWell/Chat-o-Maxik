@@ -30,7 +30,7 @@ function rgba(rgb, alpha) {
 }
 
 export function initBackgroundAnimation() {
-  const canvas = document.getElementById('backgroundCanvas');
+  const canvas = document.getElementById('bgDots');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
