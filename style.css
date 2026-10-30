@@ -42,8 +42,7 @@ body {
 }
 
 .site-header,
-.main-content,
-.site-footer {
+.main-content {
   position: relative;
   z-index: 1;
 }
@@ -169,11 +168,33 @@ h1 {
 
 .login-box button:hover { background: var(--accent-hover); }
 
-/* ЭКРАН ЧАТА */
+/* ЭКРАН ЧАТА — парящее окно со скруглениями (дизайн из Chat-o-Matic(4)) */
 #chatScreen {
   background: var(--bg-color);
   max-width: 1050px;
-  margin: auto;
+  width: 100%;
+  height: calc(100% - 24px);
+  margin: 12px auto;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  border-left: 6px solid #1e1e1e;
+  border-right: 6px solid #1e1e1e;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 6px rgba(190, 190, 190, 0.12);
+  overflow: hidden;
+}
+
+@media screen and (max-width: 768px) {
+  #chatScreen {
+    height: 100%;
+    margin: 0;
+    max-width: none;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
 }
 
 .chat-header {
@@ -2002,4 +2023,14 @@ html[data-chat-background="grid"] #messages {
 
 html[data-chat-background="plain"] #messages {
   background-image: none;
+}
+
+/* Bigger floating stage */
+@media (min-width: 769px) {
+  body {
+    background: #0a0a0a;
+  }
+  .main-content {
+    background: transparent;
+  }
 }
