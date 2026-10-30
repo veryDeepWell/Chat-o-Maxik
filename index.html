@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="shortcut icon" type="image/x-icon" href="assets/icon.ico">
   <title>Chat-o-Matic 3000</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/github-dark.min.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <canvas id="backgroundCanvas" class="background-canvas" aria-hidden="true"></canvas>
   <!-- Шапка сайта -->
   <header class="site-header">
     <div class="logo-container">
@@ -31,13 +31,9 @@
     </div>
     <div class="btn-wrapper">
       <button id="settingsBtn" class="settings-btn" type="button" title="Настройки">Настройки</button>
-      <button id="offlineBtn" class="hidden" type="button" title="Оффлайн-режим (Ctrl+Alt+O)">Оффлайн</button>
       <button id="logoutBtn" class="hidden">Выйти</button>
     </div>
   </header>
-
-  <!-- Анимированный фон (точки) — на весь viewport, за UI -->
-  <canvas id="bgDots" class="bg-dots" aria-hidden="true"></canvas>
 
   <!-- Основной контент -->
   <main class="main-content">
@@ -53,17 +49,12 @@
 
     <!-- Экран чата -->
     <div id="chatScreen" class="screen hidden">
-      <div class="chat-layout">
-      <div class="chat-main">
       <div class="chat-header">
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <span id="status-indicator">Подключение...</span>
           <span id="friend-status" style="font-size: 0.8rem; font-weight: bold; color: #888;">Проверка статуса...</span>
         </div>
-        <div class="chat-header-actions">
-          <button id="searchChatBtn" class="commands-toggle-btn" type="button" title="Поиск по чату">Поиск</button>
-          <button id="commandsToggleBtn" class="commands-toggle-btn" type="button" title="Команды" aria-expanded="false" aria-controls="commandsPanel">Команды</button>
-        </div>
+        
       </div>
       
       <div id="messages"></div>
@@ -73,10 +64,10 @@
       <div class="input-area" style="position: relative;">
         <div id="typing-indicator" style="height: 20px; font-size: 0.8rem; color: var(--accent); padding: 0 20px; font-weight: bold; opacity: 0.8; position: absolute; top: -20px"></div>
         <!-- Скрытый инпут для выбора файла -->
-        <input type="file" id="fileInput" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.md,.markdown,.txt,.json,.xml,.yaml,.yml,.log" multiple style="display: none;">
+        <input type="file" id="fileInput" accept="image/*" style="display: none;">
         <!-- Кнопка для прикрепления -->
-        <button id="attachBtn" title="Прикрепить файл или картинку" style="background: var(--border-color); color: var(--text-main); padding-left: 0;">
-          <svg class="icon-sm" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="attach file">
+        <button id="attachBtn" title="Прикрепить картинку" style="background: var(--border-color); color: var(--text-main); padding-left: 0;">
+          <svg class="icon-sm" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="attach">
             <path d="M10.5 6.5V11C10.5 12.38 9.38 13.5 8 13.5C6.62 13.5 5.5 12.38 5.5 11V5C5.5 3.62 6.62 2.5 8 2.5C9.38 2.5 10.5 3.62 10.5 5V10.5C10.5 11.33 9.83 12 9 12C8.17 12 7.5 11.33 7.5 10.5V6" 
                   stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
@@ -97,45 +88,90 @@
         </div>
         <button id="sendBtn">➤</button>
       </div>
-      </div><!-- /.chat-main -->
-
-      <aside id="commandsPanel" class="commands-panel" aria-label="Список команд">
-        <div class="commands-panel-inner">
-          <div class="commands-panel-header">
-            <h3>Команды</h3>
-            <button id="commandsCloseBtn" class="commands-close-btn" type="button" aria-label="Закрыть">✕</button>
-          </div>
-          <input id="commandsSearch" type="search" placeholder="Поиск команд..." autocomplete="off" spellcheck="false">
-          <div id="commandsList" class="commands-list"></div>
-          <p class="commands-hint">Введи команду в чат, начиная со <code>/</code>. Клик по пункту подставит её в поле ввода.</p>
-        </div>
-      </aside>
-      </div><!-- /.chat-layout -->
     </div>
 
     <div id="settingsModal" class="modal-overlay hidden">
-    <div class="modal-content settings-content">
-      <h3>Настройки чата</h3>
-      <label for="soundVolume">Громкость звука <span id="soundVolumeValue">60%</span></label>
-      <input id="soundVolume" type="range" min="0" max="100" value="60">
-      <label for="timeFormat">Формат времени</label>
-      <select id="timeFormat"><option value="24">24 часа</option><option value="12">12 часов (AM/PM)</option></select>
-      <div class="modal-actions"><button id="closeSettingsBtn" class="btn-primary" type="button">Готово</button></div>
-    </div>
-  </div>
+      <div class="modal-content settings-content appearance-settings-content" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+        <div class="settings-heading">
+          <div>
+            <h3 id="settingsTitle">Настройки</h3>
+            <p>Внешний вид применяется только в этом браузере и не меняет общую базу чата.</p>
+          </div>
+          <button id="resetAppearanceBtn" class="settings-reset-btn" type="button">Сбросить оформление</button>
+        </div>
 
-  <div id="searchModal" class="modal-overlay hidden">
-    <div class="modal-content search-modal-content" role="dialog" aria-modal="true" aria-labelledby="searchModalTitle">
-      <h3 id="searchModalTitle">Поиск по истории чата</h3>
-      <form id="searchForm" class="chat-search-form">
-        <input id="searchQuery" type="search" placeholder="Текст, имя или имя файла…" autocomplete="off">
-        <button id="searchSubmitBtn" class="btn-primary" type="submit">Искать</button>
-      </form>
-      <p id="searchStatus" class="attachment-preview-note" aria-live="polite">Поиск идёт по всей истории, страница за страницей.</p>
-      <div id="searchResults" class="chat-search-results"></div>
-      <div class="modal-actions"><button id="closeSearchBtn" class="btn-secondary" type="button">Закрыть</button></div>
+        <section class="settings-section">
+          <h4>Быстрые пресеты</h4>
+          <div class="appearance-presets">
+            <button type="button" data-appearance-preset="pink" class="preset-button"><span class="preset-swatch preset-pink"></span>Original Pink</button>
+            <button type="button" data-appearance-preset="violet" class="preset-button"><span class="preset-swatch preset-violet"></span>Violet</button>
+            <button type="button" data-appearance-preset="ocean" class="preset-button"><span class="preset-swatch preset-ocean"></span>Ocean</button>
+            <button type="button" data-appearance-preset="matrix" class="preset-button"><span class="preset-swatch preset-matrix"></span>Matrix</button>
+            <button type="button" data-appearance-preset="sunset" class="preset-button"><span class="preset-swatch preset-sunset"></span>Sunset</button>
+          </div>
+        </section>
+
+        <div class="settings-columns">
+          <section class="settings-section">
+            <h4>Цвета интерфейса</h4>
+            <div class="appearance-controls">
+              <label class="appearance-control" for="appearancePageBg"><span>Фон сайта</span><input id="appearancePageBg" type="color" data-appearance-setting="pageBg"></label>
+              <label class="appearance-control" for="appearancePanelBg"><span>Панели и шапка</span><input id="appearancePanelBg" type="color" data-appearance-setting="panelBg"></label>
+              <label class="appearance-control" for="appearanceText"><span>Основной текст</span><input id="appearanceText" type="color" data-appearance-setting="text"></label>
+              <label class="appearance-control" for="appearanceMuted"><span>Вторичный текст</span><input id="appearanceMuted" type="color" data-appearance-setting="muted"></label>
+              <label class="appearance-control" for="appearanceAccent"><span>Акцентный цвет</span><input id="appearanceAccent" type="color" data-appearance-setting="accent"></label>
+              <label class="appearance-control" for="appearanceBorder"><span>Границы и разделители</span><input id="appearanceBorder" type="color" data-appearance-setting="border"></label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h4>Сообщения</h4>
+            <div class="appearance-controls">
+              <label class="appearance-control" for="appearanceOtherMessage"><span>Фон чужого сообщения</span><input id="appearanceOtherMessage" type="color" data-appearance-setting="otherMessage"></label>
+              <label class="appearance-control" for="appearanceOtherText"><span>Текст чужого сообщения</span><input id="appearanceOtherText" type="color" data-appearance-setting="otherText"></label>
+              <label class="appearance-control" for="appearanceMineStart"><span>Моё сообщение — начало градиента</span><input id="appearanceMineStart" type="color" data-appearance-setting="mineStart"></label>
+              <label class="appearance-control" for="appearanceMineEnd"><span>Моё сообщение — конец градиента</span><input id="appearanceMineEnd" type="color" data-appearance-setting="mineEnd"></label>
+              <label class="appearance-control" for="appearanceMineText"><span>Текст моего сообщения</span><input id="appearanceMineText" type="color" data-appearance-setting="mineText"></label>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-columns">
+          <section class="settings-section">
+            <h4>Фон переписки</h4>
+            <div class="appearance-controls">
+              <label class="appearance-control" for="appearanceChatBg"><span>Цвет области сообщений</span><input id="appearanceChatBg" type="color" data-appearance-setting="chatBg"></label>
+              <label class="appearance-control appearance-select-control" for="chatBackgroundStyle"><span>Оформление фона</span>
+                <select id="chatBackgroundStyle" data-appearance-setting="chatBackground"><option value="glow">Мягкое свечение</option><option value="grid">Сетка</option><option value="plain">Однотонный</option></select>
+              </label>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h4>Анимация фона сайта</h4>
+            <div class="appearance-controls">
+              <label class="appearance-control appearance-select-control" for="backgroundAnimation"><span>Тип анимации</span>
+                <select id="backgroundAnimation" data-appearance-setting="animation"><option value="dots">Связанные частицы</option><option value="orbits">Математические орбиты</option><option value="math">Графики функций</option><option value="none">Выключена</option></select>
+              </label>
+              <label class="appearance-range" for="backgroundSpeed"><span>Скорость <output id="backgroundSpeedValue">1.0×</output></span><input id="backgroundSpeed" type="range" min="0.2" max="2" step="0.1" data-appearance-setting="speed"></label>
+              <label class="appearance-range" for="backgroundDensity"><span>Плотность частиц <output id="backgroundDensityValue">75</output></span><input id="backgroundDensity" type="range" min="30" max="140" step="5" data-appearance-setting="density"></label>
+              <label class="appearance-range" for="backgroundOpacity"><span>Интенсивность <output id="backgroundOpacityValue">65%</output></span><input id="backgroundOpacity" type="range" min="10" max="100" step="5" data-appearance-setting="opacity"></label>
+            </div>
+          </section>
+        </div>
+
+        <div class="settings-columns">
+          <section class="settings-section settings-basic-section">
+            <h4>Поведение</h4>
+            <label class="basic-setting" for="soundVolume"><span>Громкость звука <output id="soundVolumeValue">60%</output></span><input id="soundVolume" type="range" min="0" max="100" value="60"></label>
+            <label class="basic-setting" for="timeFormat"><span>Формат времени</span><select id="timeFormat"><option value="24">24 часа</option><option value="12">12 часов (AM/PM)</option></select></label>
+          </section>
+          <div class="settings-note">Цвета, пресеты и анимации сохраняются локально в браузере. Firebase, сообщения и общие данные не изменяются.</div>
+        </div>
+
+        <div class="modal-actions"><button id="closeSettingsBtn" class="btn-primary" type="button">Готово</button></div>
+      </div>
     </div>
-  </div>
 
   <div id="imageModal" class="modal-overlay hidden">
     <div class="modal-content">
@@ -161,12 +197,6 @@
 
   </main>
 
-  <!-- Подвал -->
-  <footer class="site-footer">
-    <p>Сделано с любовью к <span style="color: #ff4081;">P2P</span> (который на самом деле Firebase) © 2026</p>
-  </footer>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js" defer></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
