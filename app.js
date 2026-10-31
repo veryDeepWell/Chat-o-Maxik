@@ -12,6 +12,7 @@ import { refreshMessageTimes } from './modules/ui.js';
 import { initPresence, removePresence } from './modules/presence.js';
 import { initAppearance } from './modules/appearance.js';
 import { initBackgroundAnimation } from './modules/background.js';
+import { initHater } from './modules/hater.js';
 import { tryExecuteCommand, initCommandsPanel, replyLocalDefault, initCommandAutocomplete } from './modules/commands.js';
 import { initFormatToolbar } from './modules/formatToolbar.js';
 
@@ -34,6 +35,7 @@ let replyTarget = null;
 let editingTarget = null;
 let draftBeforeEdit = null;
 let isAwayMode = false;
+let hater = null;
 
 // ==========================================
 // 2. УПРАВЛЕНИЕ ЭКРАНАМИ (ВХОД/ВЫХОД)
@@ -52,6 +54,9 @@ function showChat() {
   const user = localStorage.getItem('chat_user_name');
   if (user && !unsubscribeMessages) {
     unsubscribeMessages = listenForMessages(user);
+    hater?.onLogin?.();
+  } else {
+    hater?.touchActivity?.();
   }
 }
 
@@ -147,6 +152,7 @@ async function sendCurrentMessage() {
       replyLocal: replyLocalDefault,
     });
     if (result.handled) {
+      hater?.onUserText?.(text);
       if (messageInput.value === submittedInputValue) {
         messageInput.value = '';
         stopTyping();
@@ -161,6 +167,8 @@ async function sendCurrentMessage() {
   const sent = await sendTextMessage(text, submittedReply);
   
   if (!sent) return;
+
+  hater?.onUserText?.(text);
 
   if (messageInput.value === submittedInputValue) {
     messageInput.value = '';
@@ -351,6 +359,7 @@ function handleImageSelection(file) {
       }
 
       if (sent) {
+        hater?.onUserImage?.(confirmedFile || file);
         clearReply();
         if (messageInput.value.trim() === existingText) {
           messageInput.value = '';
@@ -414,6 +423,8 @@ async function processSelectedFiles(fileList) {
     const submittedReply = replyTarget;
     const sent = await sendAttachment(file, draft, submittedReply);
     if (!sent) break;
+
+    hater?.onUserFile?.(file);
 
     if (messageInput.value === draft) {
       messageInput.value = '';
@@ -695,11 +706,13 @@ function setAwayMode(away) {
     overlay.classList.remove('hidden');
     document.body.classList.add('away-mode');
     startAwayFade();
+    hater?.onAway?.(true);
   } else {
     clearTimeout(awayFadeTimer);
     document.getElementById('awayReturnBtn')?.classList.remove('away-faded');
     overlay.classList.add('hidden');
     document.body.classList.remove('away-mode');
+    hater?.onAway?.(false);
     // Быстрый возврат без повторного ввода имени
     showChat();
   }
@@ -730,6 +743,8 @@ initAuth(showChat, showLogin);
 listenTypingStatus();
 initAppearance();
 initBackgroundAnimation();
+hater = initHater({ getIdleMs: () => 1000 * 90 });
+
 initCommandsPanel({
   onInsert: (snippet) => {
     messageInput.value = snippet;
