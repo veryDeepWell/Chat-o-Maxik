@@ -1235,67 +1235,63 @@ h1 {
   background: rgba(255, 128, 171, 0.12);
 }
 
-/* ========== Оффлайн-режим ========== */
+/* ========== Оффлайн-режим: фон виден, кнопка внизу ========== */
 .away-overlay {
   position: fixed;
   inset: 0;
   z-index: 3000;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  background:
-    radial-gradient(circle at 20% 20%, rgba(79, 172, 254, 0.15), transparent 40%),
-    radial-gradient(circle at 80% 70%, rgba(255, 64, 129, 0.12), transparent 45%),
-    rgba(10, 10, 10, 0.92);
-  padding: 20px;
+  /* почти прозрачный, чтобы целиком видеть анимацию фона */
+  background: transparent;
+  padding: 16px 16px 28px;
+  pointer-events: none;
 }
 .away-overlay.hidden { display: none !important; }
-.away-card {
-  background: var(--panel-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 18px;
-  padding: 32px 28px;
-  max-width: 400px;
-  width: 100%;
-  text-align: center;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
-}
-.away-icon { font-size: 2.5rem; margin-bottom: 8px; }
-.away-card h2 {
-  font-size: 1.4rem;
-  margin-bottom: 10px;
-}
-.away-card p {
+.away-return-btn {
+  pointer-events: auto;
+  border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+  background: color-mix(in srgb, var(--panel-bg) 72%, transparent);
   color: var(--text-muted);
-  font-size: 0.95rem;
-  line-height: 1.45;
-  margin-bottom: 10px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  transition: opacity 0.8s ease, color 0.2s, background 0.2s, border-color 0.2s, transform 0.15s;
+  opacity: 0.92;
 }
-.away-hotkey {
-  margin: 16px 0 20px !important;
-}
-.away-hotkey kbd {
+.away-return-btn kbd {
   display: inline-block;
-  padding: 3px 8px;
-  margin: 0 2px;
-  border-radius: 6px;
+  padding: 1px 5px;
+  margin: 0 1px;
+  border-radius: 4px;
   border: 1px solid var(--border-color);
-  background: var(--bg-color);
+  background: color-mix(in srgb, var(--bg-color) 70%, transparent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   color: var(--text-main);
 }
-.away-card .btn-primary {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  padding: 12px 22px;
-  font-weight: 700;
-  cursor: pointer;
-  font-size: 0.95rem;
+.away-return-btn:hover,
+.away-return-btn:focus-visible {
+  opacity: 1 !important;
+  color: var(--text-main);
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--panel-bg) 90%, transparent);
+  outline: none;
 }
-.away-card .btn-primary:hover { background: var(--accent-hover); }
+.away-return-btn.away-faded {
+  opacity: 0.22;
+}
+body.away-mode .site-header,
+body.away-mode .main-content {
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .message { cursor: default; }
 .message:hover { filter: brightness(1.03); }
@@ -2033,4 +2029,46 @@ html[data-chat-background="plain"] #messages {
   .main-content {
     background: transparent;
   }
+}
+
+
+/* Формулы графиков в настройках */
+.graph-formulas-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+.graph-formulas-block textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-color);
+  color: var(--text-main);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  outline: none;
+}
+.graph-formulas-block textarea:focus {
+  border-color: var(--accent);
+}
+.graph-formulas-block .btn-secondary {
+  align-self: flex-start;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+.graph-formulas-block .btn-secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }

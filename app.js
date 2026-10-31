@@ -653,16 +653,22 @@ function ensureAwayOverlay() {
   overlay.id = 'awayOverlay';
   overlay.className = 'away-overlay hidden';
   overlay.innerHTML = `
-    <div class="away-card">
-      <div class="away-icon" aria-hidden="true">🌙</div>
-      <h2>Оффлайн-режим</h2>
-      <p>Ты скрыт из чата. Сообщения не показываются, статус «оффлайн».</p>
-      <p class="away-hotkey">Переключить режим: <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>O</kbd> или кнопка ниже</p>
-      <button type="button" id="awayReturnBtn" class="btn-primary">Вернуться в чат</button>
-    </div>`;
+    <button type="button" id="awayReturnBtn" class="away-return-btn" title="Вернуться в чат (Ctrl+Alt+O)">
+      Вернуться · <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>O</kbd>
+    </button>`;
   document.body.appendChild(overlay);
   overlay.querySelector('#awayReturnBtn').addEventListener('click', () => setAwayMode(false));
   return overlay;
+}
+
+let awayFadeTimer = null;
+function startAwayFade() {
+  const btn = document.getElementById('awayReturnBtn');
+  if (!btn) return;
+  btn.classList.remove('away-faded');
+  clearTimeout(awayFadeTimer);
+  // через 4с кнопка становится почти прозрачной; при наведении снова яркая (CSS)
+  awayFadeTimer = setTimeout(() => btn.classList.add('away-faded'), 4000);
 }
 
 function setAwayMode(away) {
@@ -688,7 +694,10 @@ function setAwayMode(away) {
     logoutBtn.classList.add('hidden');
     overlay.classList.remove('hidden');
     document.body.classList.add('away-mode');
+    startAwayFade();
   } else {
+    clearTimeout(awayFadeTimer);
+    document.getElementById('awayReturnBtn')?.classList.remove('away-faded');
     overlay.classList.add('hidden');
     document.body.classList.remove('away-mode');
     // Быстрый возврат без повторного ввода имени

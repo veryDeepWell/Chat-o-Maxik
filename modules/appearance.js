@@ -1,3 +1,4 @@
+import { loadGraphFormulas, saveGraphFormulas, compileGraphExpression } from './background.js';
 const STORAGE_KEY = 'chat_appearance_v1';
 
 const DEFAULTS = Object.freeze({
@@ -49,7 +50,7 @@ const COLOR_KEYS = [
   'otherText', 'mineStart', 'mineEnd', 'mineText', 'chatBg'
 ];
 const VALID_CHAT_BACKGROUNDS = new Set(['glow', 'grid', 'plain']);
-const VALID_ANIMATIONS = new Set(['dots', 'orbits', 'math', 'none']);
+const VALID_ANIMATIONS = new Set(['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'none']);
 
 function isHexColor(value) {
   return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
@@ -185,5 +186,29 @@ export function initAppearance() {
     saveAppearance(state);
     applyAppearance(state);
     syncControls(state);
+  });
+
+  const graphInput = document.getElementById('graphFormulasInput');
+  const graphSave = document.getElementById('saveGraphFormulasBtn');
+  if (graphInput) {
+    graphInput.value = loadGraphFormulas().join('\n');
+  }
+  graphSave?.addEventListener('click', () => {
+    const lines = (graphInput?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const valid = [];
+    const errors = [];
+    for (const line of lines) {
+      try {
+        compileGraphExpression(line);
+        valid.push(line);
+      } catch (error) {
+        errors.push(`${line} — ${error.message}`);
+      }
+    }
+    saveGraphFormulas(valid.length ? valid : loadGraphFormulas());
+    if (graphInput) graphInput.value = loadGraphFormulas().join('\n');
+    if (errors.length) {
+      alert('Часть формул не принята:\n' + errors.slice(0, 5).join('\n'));
+    }
   });
 }

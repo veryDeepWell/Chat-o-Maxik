@@ -169,11 +169,17 @@
             <h4>Анимация фона сайта</h4>
             <div class="appearance-controls">
               <label class="appearance-control appearance-select-control" for="backgroundAnimation"><span>Тип анимации</span>
-                <select id="backgroundAnimation" data-appearance-setting="animation"><option value="dots">Связанные частицы</option><option value="orbits">Математические орбиты</option><option value="math">Графики функций</option><option value="none">Выключена</option></select>
+                <select id="backgroundAnimation" data-appearance-setting="animation"><option value="dots">Связанные частицы</option><option value="orbits">Математические орбиты</option><option value="math">Волны</option><option value="platonic">Платоновы тела</option><option value="tesseract">Тессеракт (4D)</option><option value="graphs">Свои графики</option><option value="none">Выключена</option></select>
               </label>
               <label class="appearance-range" for="backgroundSpeed"><span>Скорость <output id="backgroundSpeedValue">1.0×</output></span><input id="backgroundSpeed" type="range" min="0.2" max="2" step="0.1" data-appearance-setting="speed"></label>
               <label class="appearance-range" for="backgroundDensity"><span>Плотность частиц <output id="backgroundDensityValue">75</output></span><input id="backgroundDensity" type="range" min="30" max="140" step="5" data-appearance-setting="density"></label>
               <label class="appearance-range" for="backgroundOpacity"><span>Интенсивность <output id="backgroundOpacityValue">65%</output></span><input id="backgroundOpacity" type="range" min="10" max="100" step="5" data-appearance-setting="opacity"></label>
+              <div class="graph-formulas-block" id="graphFormulasBlock">
+                <label for="graphFormulasInput"><span>Формулы y = f(x) — по одной на строку</span></label>
+                <textarea id="graphFormulasInput" rows="4" spellcheck="false" placeholder="sin(x)&#10;cos(x) * 0.6&#10;sin(x)*cos(x/2)"></textarea>
+                <p class="settings-note">Доступны: sin cos tan abs sqrt log exp floor ceil min max pow pi e, переменные x и t (время). Режим «Свои графики».</p>
+                <button type="button" id="saveGraphFormulasBtn" class="btn-secondary">Применить формулы</button>
+              </div>
             </div>
           </section>
         </div>
