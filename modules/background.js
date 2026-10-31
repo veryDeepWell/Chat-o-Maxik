@@ -1,8 +1,15 @@
 import * as Scenes from './bgScenes.js';
+import { loadThemeParams, getThemeParams } from './themeSettings.js';
+
 const STORAGE_KEY = 'chat_appearance_v1';
 const GRAPHS_KEY = 'chat_graph_formulas';
 const DEFAULTS = { animation: 'dots', speed: 1, density: 75, opacity: 65 };
-const ANIMATIONS = ['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'blobs', 'blobs_color', 'blob_cycle', 'polylines', 'flicker', 'solar', 'cheese', 'blackhole', 'puppet', 'wind', 'desert', 'glacier', 'sand', 'balls', 'fireworks', 'none'];
+export const ANIMATIONS = [
+  'dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs',
+  'blobs', 'blob_cycle', 'polylines', 'flicker', 'solar', 'cheese',
+  'blackhole', 'puppet', 'wind', 'desert', 'glacier', 'sand', 'balls',
+  'fireworks', 'hater', 'none',
+];
 
 function readSettings() {
   try {
@@ -25,26 +32,29 @@ function clamp(value, min, max, fallback) {
 
 function parseHex(hex) {
   const value = /^#[0-9a-f]{6}$/i.test(hex || '') ? hex.slice(1) : 'ff80ab';
-  return [0, 2, 4].map((index) => parseInt(value.slice(index, index + 2), 16));
+  return [0, 2, 4].map((i) => parseInt(value.slice(i, i + 2), 16));
 }
 
 function rgba(rgb, alpha) {
   return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
 }
 
-/** Безопасная компиляция f(x, t) для режима графиков. */
 export function compileGraphExpression(source) {
   let src = String(source || '').trim();
   if (!src) throw new Error('пустое выражение');
-  // y = ... или f(x) = ...
   src = src.replace(/^(y|f\s*\(\s*x\s*\))\s*=\s*/i, '');
-  if (!/^[0-9a-zA-Z_+\-*/^().,\s]+$/.test(src)) {
-    throw new Error('недопустимые символы');
+  if (!/^[0-9a-zA-Z_+\-*/^().,\s]+$/.test(src)) throw new Error('недопустимые символы');
+  if (/\b(window|document|Function|eval|globalThis|this|import|constructor)\b/i.test(src)) {
+    throw new Error('запрещённый идентификатор');
   }
-  const forbidden = /\b(window|document|Function|eval|globalThis|this|import|constructor)\b/i;
-  if (forbidden.test(src)) throw new Error('запрещённый идентификатор');
-
-  let body = src
+  const allowed = new Set([
+    'x', 't', 'pi', 'e', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan',
+    'abs', 'sqrt', 'log', 'ln', 'exp', 'floor', 'ceil', 'min', 'max', 'pow', 'sign', 'hypot',
+  ]);
+  for (const id of src.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || []) {
+    if (!allowed.has(id.toLowerCase())) throw new Error('неизвестная функция или переменная: ' + id);
+  }
+  const body = src
     .replace(/\^/g, '**')
     .replace(/\bpi\b/gi, 'Math.PI')
     .replace(/\be\b/g, 'Math.E')
@@ -66,43 +76,36 @@ export function compileGraphExpression(source) {
     .replace(/\bpow\b/gi, 'Math.pow')
     .replace(/\bsign\b/gi, 'Math.sign')
     .replace(/\bhypot\b/gi, 'Math.hypot');
-
-  // после замен не должно остаться неизвестных идентификаторов кроме x, t, Math
-  if (/[a-zA-Z_][a-zA-Z0-9_]*/.test(body.replace(/\b(Math|x|t)\b/g, ''))) {
-    throw new Error('неизвестная функция или переменная');
-  }
-
-  // eslint-disable-next-line no-new-func
   const fn = new Function('x', 't', `"use strict"; return (${body});`);
-  // пробный вызов
-  const sample = fn(0, 0);
-  if (typeof sample !== 'number') throw new Error('выражение должно возвращать число');
+  const sample = fn(0.5, 0.1);
+  if (typeof sample !== 'number' || Number.isNaN(sample)) {
+    throw new Error('выражение должно возвращать число');
+  }
   return fn;
 }
 
 export function loadGraphFormulas() {
   try {
+    const fromTheme = loadThemeParams().graphs?.formulas;
+    if (Array.isArray(fromTheme) && fromTheme.length) return fromTheme.map(String);
     const raw = JSON.parse(localStorage.getItem(GRAPHS_KEY) || '[]');
-    if (!Array.isArray(raw)) return defaultGraphFormulas();
-    const list = raw.map(String).map((s) => s.trim()).filter(Boolean).slice(0, 12);
-    return list.length ? list : defaultGraphFormulas();
-  } catch {
-    return defaultGraphFormulas();
-  }
+    if (Array.isArray(raw) && raw.length) return raw.map(String).filter(Boolean).slice(0, 12);
+  } catch { /* ignore */ }
+  return ['sin(x)', 'cos(x)*0.6', 'sin(x)*cos(x/2)'];
 }
 
 export function saveGraphFormulas(list) {
   const cleaned = (list || []).map(String).map((s) => s.trim()).filter(Boolean).slice(0, 12);
   localStorage.setItem(GRAPHS_KEY, JSON.stringify(cleaned));
+  try {
+    const all = loadThemeParams();
+    all.graphs = { ...all.graphs, formulas: cleaned };
+    localStorage.setItem('chat_theme_params_v1', JSON.stringify(all));
+  } catch { /* ignore */ }
   window.dispatchEvent(new CustomEvent('appearance:change'));
   return cleaned;
 }
 
-function defaultGraphFormulas() {
-  return ['sin(x)', 'cos(x) * 0.6', 'sin(x) * cos(x / 2)'];
-}
-
-// --- 3D helpers ---
 function rotX(p, a) {
   const c = Math.cos(a); const s = Math.sin(a);
   return [p[0], p[1] * c - p[2] * s, p[1] * s + p[2] * c];
@@ -115,104 +118,72 @@ function rotZ(p, a) {
   const c = Math.cos(a); const s = Math.sin(a);
   return [p[0] * c - p[1] * s, p[0] * s + p[1] * c, p[2]];
 }
-
-function project3(p, width, height, scale, ox, oy) {
-  const z = p[2] + 4;
-  const f = scale / z;
-  return [ox + p[0] * f, oy + p[1] * f, z];
+function rot4(p, plane, a) {
+  const c = Math.cos(a); const s = Math.sin(a);
+  const out = p.slice();
+  out[plane[0]] = p[plane[0]] * c - p[plane[1]] * s;
+  out[plane[1]] = p[plane[0]] * s + p[plane[1]] * c;
+  return out;
 }
 
-// Platonic solid templates (unit-ish)
 const SOLIDS = {
   tetra: {
-    verts: [
-      [1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1],
-    ].map((v) => {
+    verts: [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]].map((v) => {
       const n = Math.hypot(...v) || 1;
       return v.map((c) => c / n);
     }),
     edges: [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3]],
   },
   cube: {
-    verts: [-1, 1].flatMap((x) => [-1, 1].flatMap((y) => [-1, 1].map((z) => {
-      const n = Math.hypot(x, y, z) || 1;
+    verts: Array.from({ length: 8 }, (_, i) => {
+      const x = (i & 4) ? 1 : -1;
+      const y = (i & 2) ? 1 : -1;
+      const z = (i & 1) ? 1 : -1;
+      const n = Math.hypot(x, y, z);
       return [x / n, y / n, z / n];
-    }))),
+    }),
     edges: (() => {
       const e = [];
-      for (let i = 0; i < 8; i++) {
-        for (let j = i + 1; j < 8; j++) {
-          let diff = 0;
-          // rebuild verts order: xyy pattern
-          const bits = (a) => [(a & 4) ? 1 : -1, (a & 2) ? 1 : -1, (a & 1) ? 1 : -1];
-          // use index bit Hamming
-        }
-      }
-      // explicit cube edges by index 0..7 where index = x*4+y*2+z
-      const idx = (x, y, z) => (x + 1) / 2 * 4 + (y + 1) / 2 * 2 + (z + 1) / 2;
-      // Actually verts built as x,y,z nested - index = ((x+1)/2)*4 + ((y+1)/2)*2 + ((z+1)/2)
-      for (let a = 0; a < 8; a++) {
-        for (let b = a + 1; b < 8; b++) {
-          let bits = 0;
-          for (let k = 0; k < 3; k++) if (((a >> k) & 1) !== ((b >> k) & 1)) bits++;
-          if (bits === 1) e.push([a, b]);
-        }
+      for (let a = 0; a < 8; a++) for (let b = a + 1; b < 8; b++) {
+        let bits = 0;
+        for (let k = 0; k < 3; k++) if (((a >> k) & 1) !== ((b >> k) & 1)) bits++;
+        if (bits === 1) e.push([a, b]);
       }
       return e;
     })(),
   },
   octa: {
-    verts: [
-      [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1],
-    ],
-    edges: [
-      [0, 2], [0, 3], [0, 4], [0, 5],
-      [1, 2], [1, 3], [1, 4], [1, 5],
-      [2, 4], [2, 5], [3, 4], [3, 5],
-    ],
+    verts: [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]],
+    edges: [[0, 2], [0, 3], [0, 4], [0, 5], [1, 2], [1, 3], [1, 4], [1, 5], [2, 4], [2, 5], [3, 4], [3, 5]],
   },
 };
-
-// Fix cube verts to match bit-index edges
-SOLIDS.cube.verts = Array.from({ length: 8 }, (_, i) => {
-  const x = (i & 4) ? 1 : -1;
-  const y = (i & 2) ? 1 : -1;
-  const z = (i & 1) ? 1 : -1;
-  const n = Math.hypot(x, y, z);
-  return [x / n, y / n, z / n];
-});
 
 function makeTesseract() {
   const verts = [];
   for (let i = 0; i < 16; i++) {
-    verts.push([
-      (i & 1) ? 1 : -1,
-      (i & 2) ? 1 : -1,
-      (i & 4) ? 1 : -1,
-      (i & 8) ? 1 : -1,
-    ]);
+    verts.push([(i & 1) ? 1 : -1, (i & 2) ? 1 : -1, (i & 4) ? 1 : -1, (i & 8) ? 1 : -1]);
   }
   const edges = [];
-  for (let a = 0; a < 16; a++) {
-    for (let b = a + 1; b < 16; b++) {
-      let bits = 0;
-      for (let k = 0; k < 4; k++) if (((a >> k) & 1) !== ((b >> k) & 1)) bits++;
-      if (bits === 1) edges.push([a, b]);
-    }
+  for (let a = 0; a < 16; a++) for (let b = a + 1; b < 16; b++) {
+    let bits = 0;
+    for (let k = 0; k < 4; k++) if (((a >> k) & 1) !== ((b >> k) & 1)) bits++;
+    if (bits === 1) edges.push([a, b]);
   }
   return { verts, edges };
 }
-
 const TESSERACT = makeTesseract();
 
-function rot4(p, plane, a) {
-  const c = Math.cos(a); const s = Math.sin(a);
-  const out = p.slice();
-  const [i, j] = plane;
-  out[i] = p[i] * c - p[j] * s;
-  out[j] = p[i] * s + p[j] * c;
-  return out;
-}
+const PLANETS = [
+  { name: 'Mercury', a: 0.39, period: 0.24, size: 2.2, color: '#b1b1b1' },
+  { name: 'Venus', a: 0.72, period: 0.62, size: 3.2, color: '#e6c07b' },
+  { name: 'Earth', a: 1.0, period: 1.0, size: 3.4, color: '#6ca0ff' },
+  { name: 'Mars', a: 1.52, period: 1.88, size: 2.6, color: '#ff6b4a' },
+  { name: 'Jupiter', a: 5.2, period: 11.86, size: 7.5, color: '#d2b48c' },
+  { name: 'Saturn', a: 9.5, period: 29.46, size: 6.5, color: '#f0d59a', ring: true },
+  { name: 'Uranus', a: 19.2, period: 84.0, size: 4.5, color: '#7fdbd4' },
+  { name: 'Neptune', a: 30.1, period: 164.8, size: 4.4, color: '#4169e1' },
+  { name: 'Pluto', a: 39.5, period: 248.0, size: 1.8, color: '#c4a484' },
+];
 
 export function initBackgroundAnimation() {
   const canvas = document.getElementById('bgDots');
@@ -220,46 +191,27 @@ export function initBackgroundAnimation() {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
 
-  let width = 0;
-  let height = 0;
-  let dpr = 1;
+  let width = 0; let height = 0; let dpr = 1;
   let settings = readSettings();
+  let themeAll = loadThemeParams();
+  let theme = getThemeParams(settings.animation, themeAll);
   let accent = parseHex(getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-  let dots = [];
-  let solids = [];
-  let graphFns = [];
-  let sceneBlobs = [];
-  let sceneBlobCycle = null;
-  let scenePolylines = [];
-  let sceneFlicker = [];
-  let sceneCheese = null;
-  let sceneWind = [];
-  let sceneSand = [];
-  let sceneBalls = [];
-  let sceneFireworks = null;
-  let phase = 0;
-  let lastFrame = 0;
-  let frameId = 0;
+  let dots = []; let solids = []; let graphFns = [];
+  let sceneBlobs = []; let sceneBlobCycle = null; let sceneGlass = [];
+  let sceneFlicker = null; let sceneCheese = null; let sceneWind = [];
+  let sceneSand = []; let sceneBalls = []; let sceneFireworks = null;
+  let sceneDesert = null; let sceneBlackHole = [];
+  let phase = 0; let lastFrame = 0; let frameId = 0;
   const frameInterval = 1000 / 30;
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
-  function resize() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-    canvas.style.width = `${width}px`;
-    canvas.style.height = `${height}px`;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    createDots();
-    createSolids();
-    initScenes();
-    drawStatic();
+  function refreshTheme() {
+    themeAll = loadThemeParams();
+    theme = getThemeParams(settings.animation, themeAll);
   }
 
   function createDots() {
-    const count = settings.density;
+    const count = theme.density || settings.density;
     dots = Array.from({ length: count }, () => ({
       x: Math.random() * Math.max(width, 1),
       y: Math.random() * Math.max(height, 1),
@@ -271,146 +223,136 @@ export function initBackgroundAnimation() {
     }));
   }
 
-
-  function initScenes() {
-    sceneBlobs = Scenes.createBlobs(width, height, settings.density, settings.animation === 'blobs_color');
-    sceneBlobCycle = Scenes.createBlobCycle(width, height);
-    scenePolylines = Scenes.createPolylines(width, height);
-    sceneFlicker = Scenes.createFlicker(width, height, settings.density);
-    sceneCheese = Scenes.createCheese(width, height);
-    sceneWind = Scenes.createWind(width, height, settings.density);
-    sceneSand = Scenes.createSand(width, height, settings.density);
-    sceneBalls = Scenes.createBalls(width, height, settings.density);
-    sceneFireworks = Scenes.createFireworks();
-  }
-
   function createSolids() {
-    const types = ['tetra', 'cube', 'octa', 'tetra', 'cube'];
-    const n = Math.max(3, Math.min(7, Math.round(settings.density / 25)));
+    const types = ['tetra', 'cube', 'octa'];
+    const n = Math.max(1, Math.min(20, Math.round(theme.count || 5)));
+    const sizeMul = theme.size || 1;
+    const spinMul = theme.spin || 0.35;
     solids = Array.from({ length: n }, (_, i) => {
-      const type = types[i % types.length];
-      const scale = 40 + Math.random() * 50;
+      const scale = (36 + Math.random() * 40) * sizeMul;
       return {
-        type,
-        x: Math.random() * width,
-        y: Math.random() * height,
-        z: 0,
-        vx: (Math.random() - 0.5) * 1.2,
-        vy: (Math.random() - 0.5) * 1.2,
+        type: types[i % types.length],
+        x: Math.random() * width, y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.9 * (theme.speed || 1),
+        vy: (Math.random() - 0.5) * 0.9 * (theme.speed || 1),
         rx: Math.random() * Math.PI * 2,
         ry: Math.random() * Math.PI * 2,
         rz: Math.random() * Math.PI * 2,
         spin: [
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02,
-          (Math.random() - 0.5) * 0.02,
+          (Math.random() - 0.5) * 0.003 * spinMul,
+          (Math.random() - 0.5) * 0.003 * spinMul,
+          (Math.random() - 0.5) * 0.003 * spinMul,
         ],
-        scale,
-        r: scale * 0.55,
+        scale, r: scale * 0.55,
       };
     });
   }
 
+  function initScenes() {
+    sceneBlobs = Scenes.createBlobs(width, height, theme);
+    sceneBlobCycle = Scenes.createBlobCycle(width, height, theme);
+    sceneGlass = Scenes.createGlass(width, height, theme);
+    sceneFlicker = Scenes.createFlickerGrid(width, height, theme);
+    sceneCheese = Scenes.createCheese(width, height);
+    sceneWind = Scenes.createWind(width, height, theme);
+    sceneSand = Scenes.createSand(width, height, theme);
+    sceneBalls = Scenes.createBalls(width, height, theme);
+    sceneFireworks = Scenes.createFireworks();
+    sceneDesert = Scenes.createDesert(width, height);
+    sceneBlackHole = Scenes.createBlackHole(width, height, theme);
+  }
+
   function reloadGraphs() {
     graphFns = [];
-    for (const src of loadGraphFormulas()) {
-      try {
-        graphFns.push({ src, fn: compileGraphExpression(src) });
-      } catch (error) {
-        console.warn('График пропущен:', src, error.message);
-      }
+    const list = theme.formulas || loadGraphFormulas();
+    for (const src of list) {
+      try { graphFns.push({ src, fn: compileGraphExpression(src) }); }
+      catch (e) { console.warn('График пропущен:', src, e.message); }
     }
   }
 
-  function clear() {
-    ctx.clearRect(0, 0, width, height);
+  function resize() {
+    width = window.innerWidth;
+    height = window.innerHeight;
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    canvas.width = Math.round(width * dpr);
+    canvas.height = Math.round(height * dpr);
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    createDots(); createSolids(); initScenes(); reloadGraphs();
+    drawStatic();
+  }
+
+  function clear() { ctx.clearRect(0, 0, width, height); }
+
+  function env(delta) {
+    return {
+      width, height, delta, speed: settings.speed, opacity: settings.opacity,
+      accent, phase, params: theme, _blobCanvas: env._blobCanvas, _blobCtx: env._blobCtx,
+    };
   }
 
   function drawDots(delta) {
     const step = delta / 16.67;
-    const reach = Math.min(150, Math.max(85, Math.sqrt((width * height) / Math.max(dots.length, 1)) * 1.05));
+    const reach = theme.linkDist || 140;
     for (const dot of dots) {
       dot.x += dot.vx * settings.speed * step;
       dot.y += dot.vy * settings.speed * step;
       if (dot.x < -4 || dot.x > width + 4) dot.vx *= -1;
       if (dot.y < -4 || dot.y > height + 4) dot.vy *= -1;
     }
-
     for (let i = 0; i < dots.length; i++) {
-      const a = dots[i];
       for (let j = i + 1; j < dots.length; j++) {
-        const b = dots[j];
-        const dx = a.x - b.x;
-        const dy = a.y - b.y;
-        const distanceSquared = dx * dx + dy * dy;
-        if (distanceSquared >= reach * reach) continue;
-        const distance = Math.sqrt(distanceSquared);
-        const alpha = (1 - distance / reach) * 0.22 * settings.opacity;
-        ctx.strokeStyle = rgba(accent, alpha);
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(a.x, a.y);
-        ctx.lineTo(b.x, b.y);
-        ctx.stroke();
+        const a = dots[i]; const b = dots[j];
+        const dx = a.x - b.x; const dy = a.y - b.y;
+        const d2 = dx * dx + dy * dy;
+        if (d2 >= reach * reach) continue;
+        const d = Math.sqrt(d2);
+        ctx.strokeStyle = rgba(accent, (1 - d / reach) * 0.22 * settings.opacity);
+        ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
       }
     }
-
     for (const dot of dots) {
-      const pulse = 1 + Math.sin(phase + dot.phase) * 0.12;
       ctx.fillStyle = rgba(accent, dot.alpha * settings.opacity);
       ctx.beginPath();
-      ctx.arc(dot.x, dot.y, dot.radius * pulse, 0, Math.PI * 2);
+      ctx.arc(dot.x, dot.y, dot.radius * (theme.size || 1), 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
   function drawOrbits() {
-    const centerX = width * 0.5;
-    const centerY = height * 0.5;
+    const rings = Math.max(2, Math.min(10, Math.round(theme.rings || 5)));
+    const cx = width * 0.5; const cy = height * 0.5;
     const base = Math.min(width, height) * 0.13;
     const rotation = phase * 0.18 * settings.speed;
-    ctx.lineWidth = 1;
-    for (let index = 0; index < 5; index++) {
+    for (let index = 0; index < rings; index++) {
       const radius = base + index * Math.min(24, base * 0.13);
-      ctx.strokeStyle = rgba(accent, (0.08 + index * 0.012) * settings.opacity);
+      ctx.strokeStyle = rgba(accent, (0.08 + index * 0.012) * settings.opacity * (theme.glow || 1));
       ctx.beginPath();
-      ctx.ellipse(centerX, centerY, radius * (1.35 + index * 0.035), radius * 0.55, rotation + index * 0.38, 0, Math.PI * 2);
+      ctx.ellipse(cx, cy, radius * (1.35 + index * 0.035), radius * 0.55, rotation + index * 0.38, 0, Math.PI * 2);
       ctx.stroke();
       const angle = rotation * (index % 2 ? -1 : 1) + index * 1.4;
-      const x = centerX + Math.cos(angle) * radius * (1.35 + index * 0.035);
-      const y = centerY + Math.sin(angle) * radius * 0.55;
+      const x = cx + Math.cos(angle) * radius * (1.35 + index * 0.035);
+      const y = cy + Math.sin(angle) * radius * 0.55;
       ctx.fillStyle = rgba(accent, (0.45 + index * 0.06) * settings.opacity);
-      ctx.beginPath();
-      ctx.arc(x, y, 2.2 + (index % 2), 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, 2.2, 0, Math.PI * 2); ctx.fill();
     }
-    const glow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, base * 1.5);
-    glow.addColorStop(0, rgba(accent, 0.09 * settings.opacity));
-    glow.addColorStop(1, rgba(accent, 0));
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, base * 1.5, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   function drawMath() {
+    const waves = Math.max(1, Math.min(8, Math.round(theme.waves || 3)));
     const midY = height * 0.5;
-    const amp = Math.min(height * 0.18, 120);
-    const waves = [
-      { freq: 0.012, phase: 0, amp: 1, alpha: 0.35 },
-      { freq: 0.02, phase: 1.2, amp: 0.55, alpha: 0.22 },
-      { freq: 0.007, phase: 2.4, amp: 1.35, alpha: 0.16 },
-    ];
-    for (const wave of waves) {
+    const amp = Math.min(height * 0.18, 120) * (theme.amplitude || 1);
+    for (let i = 0; i < waves; i++) {
       ctx.beginPath();
-      ctx.strokeStyle = rgba(accent, wave.alpha * settings.opacity);
+      ctx.strokeStyle = rgba(accent, (0.35 - i * 0.05) * settings.opacity);
       ctx.lineWidth = 1.4;
       for (let x = 0; x <= width; x += 3) {
         const y = midY
-          + Math.sin(x * wave.freq + phase * settings.speed + wave.phase) * amp * wave.amp
-          + Math.sin(x * wave.freq * 0.37 + phase * 0.6) * amp * 0.15 * wave.amp;
-        if (x === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+          + Math.sin(x * (0.01 + i * 0.004) + phase * settings.speed + i) * amp * (1 - i * 0.12)
+          + Math.sin(x * 0.03 + phase * 0.5) * amp * 0.12;
+        if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.stroke();
     }
@@ -418,216 +360,153 @@ export function initBackgroundAnimation() {
 
   function drawPlatonic(delta) {
     const step = delta / 16.67;
-    const speed = settings.speed;
-
-    // move + bounce walls
+    const speed = settings.speed * (theme.speed || 1);
     for (const s of solids) {
       s.x += s.vx * speed * step;
       s.y += s.vy * speed * step;
-      s.rx += s.spin[0] * speed * step * 60;
-      s.ry += s.spin[1] * speed * step * 60;
-      s.rz += s.spin[2] * speed * step * 60;
+      s.rx += s.spin[0] * speed * step * 10;
+      s.ry += s.spin[1] * speed * step * 10;
+      s.rz += s.spin[2] * speed * step * 10;
       if (s.x < s.r) { s.x = s.r; s.vx = Math.abs(s.vx); }
       if (s.x > width - s.r) { s.x = width - s.r; s.vx = -Math.abs(s.vx); }
       if (s.y < s.r) { s.y = s.r; s.vy = Math.abs(s.vy); }
       if (s.y > height - s.r) { s.y = height - s.r; s.vy = -Math.abs(s.vy); }
     }
-
-    // soft collisions
     for (let i = 0; i < solids.length; i++) {
       for (let j = i + 1; j < solids.length; j++) {
-        const a = solids[i];
-        const b = solids[j];
-        const dx = b.x - a.x;
-        const dy = b.y - a.y;
+        const a = solids[i]; const b = solids[j];
+        const dx = b.x - a.x; const dy = b.y - a.y;
         const dist = Math.hypot(dx, dy) || 0.001;
-        const minDist = a.r + b.r;
-        if (dist >= minDist) continue;
-        const nx = dx / dist;
-        const ny = dy / dist;
-        const overlap = (minDist - dist) / 2;
-        a.x -= nx * overlap;
-        a.y -= ny * overlap;
-        b.x += nx * overlap;
-        b.y += ny * overlap;
-        // exchange normal velocity component
+        const min = a.r + b.r;
+        if (dist >= min) continue;
+        const nx = dx / dist; const ny = dy / dist;
+        const overlap = (min - dist) / 2;
+        a.x -= nx * overlap; a.y -= ny * overlap;
+        b.x += nx * overlap; b.y += ny * overlap;
         const avn = a.vx * nx + a.vy * ny;
         const bvn = b.vx * nx + b.vy * ny;
-        a.vx += (bvn - avn) * nx;
-        a.vy += (bvn - avn) * ny;
-        b.vx += (avn - bvn) * nx;
-        b.vy += (avn - bvn) * ny;
+        a.vx += (bvn - avn) * nx; a.vy += (bvn - avn) * ny;
+        b.vx += (avn - bvn) * nx; b.vy += (avn - bvn) * ny;
       }
     }
-
-    ctx.lineWidth = 1.2;
     for (const s of solids) {
       const mesh = SOLIDS[s.type];
       if (!mesh) continue;
       const projected = mesh.verts.map((v) => {
         let p = v.map((c) => c * s.scale * 0.02);
-        p = rotX(p, s.rx);
-        p = rotY(p, s.ry);
-        p = rotZ(p, s.rz);
-        // orthographic-ish with slight perspective
+        p = rotX(p, s.rx); p = rotY(p, s.ry); p = rotZ(p, s.rz);
         const depth = 1 + p[2] * 0.15;
         return [s.x + p[0] * 28 / depth, s.y + p[1] * 28 / depth, p[2]];
       });
-
       ctx.strokeStyle = rgba(accent, 0.35 * settings.opacity);
+      ctx.lineWidth = 1.2;
       for (const [ia, ib] of mesh.edges) {
-        const a = projected[ia];
-        const b = projected[ib];
         ctx.beginPath();
-        ctx.moveTo(a[0], a[1]);
-        ctx.lineTo(b[0], b[1]);
+        ctx.moveTo(projected[ia][0], projected[ia][1]);
+        ctx.lineTo(projected[ib][0], projected[ib][1]);
         ctx.stroke();
       }
-      // vertices
       for (const p of projected) {
-        const alpha = (0.35 + (p[2] + 1) * 0.15) * settings.opacity;
-        ctx.fillStyle = rgba(accent, Math.min(0.9, alpha));
-        ctx.beginPath();
-        ctx.arc(p[0], p[1], 2.2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.fillStyle = rgba(accent, Math.min(0.9, (0.35 + (p[2] + 1) * 0.15) * settings.opacity));
+        ctx.beginPath(); ctx.arc(p[0], p[1], 2.2, 0, Math.PI * 2); ctx.fill();
       }
     }
   }
 
   function drawTesseract() {
-    const cx = width * 0.5;
-    const cy = height * 0.5;
-    const t = phase * settings.speed;
-    const scale = Math.min(width, height) * 0.22;
-
+    const cx = width / 2; const cy = height / 2;
+    const t = phase * settings.speed * (theme.spin || 1);
+    const scale = Math.min(width, height) * 0.22 * (theme.scale || 1);
     const projected = TESSERACT.verts.map((v) => {
       let p = v.slice();
       p = rot4(p, [0, 1], t * 0.7);
       p = rot4(p, [2, 3], t * 0.55);
       p = rot4(p, [0, 3], t * 0.35);
       p = rot4(p, [1, 2], t * 0.25);
-      // 4D -> 3D perspective on w
       const w = 2.6 / (3.2 - p[3]);
-      const x3 = p[0] * w;
-      const y3 = p[1] * w;
-      const z3 = p[2] * w;
-      // 3D -> 2D
-      const z = 2.4 / (3 - z3);
-      return [cx + x3 * scale * z, cy + y3 * scale * z, z3];
+      const z = 2.4 / (3 - p[2] * w);
+      return [cx + p[0] * w * scale * z, cy + p[1] * w * scale * z, p[2] * w];
     });
-
-    ctx.lineWidth = 1.15;
     for (const [ia, ib] of TESSERACT.edges) {
-      const a = projected[ia];
-      const b = projected[ib];
+      const a = projected[ia]; const b = projected[ib];
       const depth = ((a[2] + b[2]) * 0.5 + 1.2) / 2.4;
       ctx.strokeStyle = rgba(accent, (0.12 + depth * 0.35) * settings.opacity);
-      ctx.beginPath();
-      ctx.moveTo(a[0], a[1]);
-      ctx.lineTo(b[0], b[1]);
-      ctx.stroke();
-    }
-    for (const p of projected) {
-      ctx.fillStyle = rgba(accent, (0.25 + (p[2] + 1) * 0.2) * settings.opacity);
-      ctx.beginPath();
-      ctx.arc(p[0], p[1], 2.4, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
     }
   }
 
-  function drawGraphs() {
-    if (!graphFns.length) reloadGraphs();
-    if (!graphFns.length) return;
-
-    const midY = height * 0.5;
-    const midX = width * 0.5;
-    // x from -range..range maps to width
-    const xRange = Math.PI * 4;
-    const yScale = Math.min(height * 0.22, 140);
-    const t = phase * settings.speed;
-
-    // axes
-    ctx.strokeStyle = rgba(accent, 0.12 * settings.opacity);
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    ctx.lineTo(width, midY);
-    ctx.moveTo(midX, 0);
-    ctx.lineTo(midX, height);
-    ctx.stroke();
-
-    const colors = graphFns.map((_, i) => {
-      const hueShift = (i * 47) % 360;
-      // approximate accent-tinted variants via alpha only; keep same accent
-      return (0.55 - i * 0.06);
-    });
-
-    graphFns.forEach((item, index) => {
-      ctx.beginPath();
-      ctx.strokeStyle = rgba(accent, Math.max(0.18, colors[index]) * settings.opacity);
-      ctx.lineWidth = 1.6;
-      let started = false;
-      const step = Math.max(2, Math.floor(width / 400));
-      for (let px = 0; px <= width; px += step) {
-        const x = ((px - midX) / width) * xRange * 2;
-        let yVal;
-        try {
-          yVal = item.fn(x, t);
-        } catch {
-          started = false;
-          continue;
-        }
-        if (!Number.isFinite(yVal)) {
-          started = false;
-          continue;
-        }
-        const py = midY - yVal * yScale;
-        if (py < -50 || py > height + 50) {
-          started = false;
-          continue;
-        }
-        if (!started) {
-          ctx.moveTo(px, py);
-          started = true;
-        } else {
-          ctx.lineTo(px, py);
-        }
+  function drawSolar() {
+    const cx = width / 2; const cy = height / 2;
+    const maxA = 39.5;
+    const scale = Math.min(width, height) * 0.45 / maxA * (theme.scale || 1);
+    const t = phase * settings.speed * 0.15 * (theme.speed || 1);
+    const sunR = 10;
+    const sunG = ctx.createRadialGradient(cx, cy, 0, cx, cy, sunR * 3);
+    sunG.addColorStop(0, `rgba(255,220,100,${0.95 * settings.opacity})`);
+    sunG.addColorStop(1, 'rgba(255,160,40,0)');
+    ctx.fillStyle = sunG;
+    ctx.beginPath(); ctx.arc(cx, cy, sunR * 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = `rgba(255,210,80,${settings.opacity})`;
+    ctx.beginPath(); ctx.arc(cx, cy, sunR, 0, Math.PI * 2); ctx.fill();
+    ctx.font = "italic 11px 'Palatino Linotype', Palatino, Georgia, serif";
+    for (const p of PLANETS) {
+      ctx.strokeStyle = `rgba(255,255,255,${0.08 * settings.opacity})`;
+      ctx.beginPath(); ctx.arc(cx, cy, p.a * scale, 0, Math.PI * 2); ctx.stroke();
+      const angle = t * (1 / p.period) * Math.PI * 2;
+      const incl = p.name === 'Pluto' ? 0.92 : 1;
+      const x = cx + Math.cos(angle) * p.a * scale;
+      const y = cy + Math.sin(angle) * p.a * scale * incl;
+      if (p.ring) {
+        ctx.strokeStyle = `rgba(240,213,154,${0.35 * settings.opacity})`;
+        ctx.beginPath(); ctx.ellipse(x, y, p.size * 1.8, p.size * 0.55, angle, 0, Math.PI * 2); ctx.stroke();
       }
-      ctx.stroke();
-    });
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = settings.opacity;
+      ctx.beginPath(); ctx.arc(x, y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (theme.labels !== false) {
+        ctx.fillStyle = `rgba(240,230,255,${0.75 * settings.opacity})`;
+        ctx.fillText(p.name, x + p.size + 4, y - 2);
+      }
+    }
   }
 
   function drawScene(delta = 16) {
-    const env = { width, height, delta, speed: settings.speed, opacity: settings.opacity, accent, phase };
+    const e = env(delta);
+    env._blobCanvas = e._blobCanvas;
+    env._blobCtx = e._blobCtx;
     switch (settings.animation) {
       case 'dots': drawDots(delta); break;
       case 'orbits': drawOrbits(); break;
       case 'math': drawMath(); break;
       case 'platonic': drawPlatonic(delta); break;
       case 'tesseract': drawTesseract(); break;
-      case 'graphs': drawGraphs(); break;
-      case 'blobs': Scenes.drawBlobs(ctx, sceneBlobs, { ...env, colored: false }); break;
-      case 'blobs_color': Scenes.drawBlobs(ctx, sceneBlobs, { ...env, colored: true }); break;
-      case 'blob_cycle': Scenes.drawBlobCycle(ctx, sceneBlobCycle, env); break;
-      case 'polylines': Scenes.drawPolylines(ctx, scenePolylines, env); break;
-      case 'flicker': Scenes.drawFlicker(ctx, sceneFlicker, env); break;
-      case 'solar': Scenes.drawSolarSystem(ctx, env); break;
-      case 'cheese': Scenes.drawCheese(ctx, sceneCheese, env); break;
-      case 'blackhole': Scenes.drawBlackHole(ctx, env); break;
-      case 'puppet': Scenes.drawPuppetWaves(ctx, env); break;
-      case 'wind': Scenes.drawWind(ctx, sceneWind, env); break;
-      case 'desert': Scenes.drawDesert(ctx, env); break;
-      case 'glacier': Scenes.drawGlacier(ctx, env); break;
-      case 'sand': Scenes.drawSand(ctx, sceneSand, env); break;
-      case 'balls': Scenes.drawBalls(ctx, sceneBalls, env); break;
-      case 'fireworks': Scenes.drawFireworks(ctx, sceneFireworks, env); break;
+      case 'graphs':
+        if (!graphFns.length) reloadGraphs();
+        Scenes.drawGraphsScene(ctx, graphFns, e);
+        break;
+      case 'blobs': Scenes.drawBlobs(ctx, sceneBlobs, e); break;
+      case 'blob_cycle': Scenes.drawBlobCycle(ctx, sceneBlobCycle, e); break;
+      case 'polylines': Scenes.drawGlass(ctx, sceneGlass, e); break;
+      case 'flicker': Scenes.drawFlickerGrid(ctx, sceneFlicker, e); break;
+      case 'solar': drawSolar(); break;
+      case 'cheese': Scenes.drawCheese(ctx, sceneCheese, e); break;
+      case 'blackhole': Scenes.drawBlackHole(ctx, sceneBlackHole, e); break;
+      case 'puppet': Scenes.drawPuppetWaves(ctx, e); break;
+      case 'wind': Scenes.drawWind(ctx, sceneWind, e); break;
+      case 'desert': Scenes.drawDesert(ctx, sceneDesert, e); break;
+      case 'glacier': Scenes.drawGlacier(ctx, e); break;
+      case 'sand': Scenes.drawSand(ctx, sceneSand, e); break;
+      case 'balls': Scenes.drawBalls(ctx, sceneBalls, e); break;
+      case 'fireworks': Scenes.drawFireworks(ctx, sceneFireworks, e); break;
+      case 'hater': break; // DOM theme
       default: break;
     }
   }
 
   function drawStatic() {
     clear();
-    if (settings.animation === 'none' || reduceMotion.matches) return;
+    if (settings.animation === 'none' || settings.animation === 'hater' || reduceMotion.matches) return;
     drawScene(16);
   }
 
@@ -638,7 +517,7 @@ export function initBackgroundAnimation() {
 
   function frame(now) {
     frameId = 0;
-    if (document.hidden || settings.animation === 'none' || reduceMotion.matches) return;
+    if (document.hidden || settings.animation === 'none' || settings.animation === 'hater' || reduceMotion.matches) return;
     if (now - lastFrame < frameInterval) {
       frameId = requestAnimationFrame(frame);
       return;
@@ -655,33 +534,25 @@ export function initBackgroundAnimation() {
     stop();
     lastFrame = 0;
     clear();
-    if (settings.animation === 'none' || document.hidden || reduceMotion.matches) return;
+    document.body.classList.toggle('theme-hater', settings.animation === 'hater');
+    if (settings.animation === 'none' || settings.animation === 'hater' || document.hidden || reduceMotion.matches) return;
     frameId = requestAnimationFrame(frame);
   }
 
   function updateFromPreferences() {
-    const previousDensity = settings.density;
-    const previousAnim = settings.animation;
+    const prev = settings.animation;
     settings = readSettings();
     accent = parseHex(getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-    if (previousDensity !== settings.density || previousAnim !== settings.animation) {
-      createDots();
-      createSolids();
-      initScenes();
-    }
-    if (settings.animation === 'graphs' || previousAnim === 'graphs') reloadGraphs();
-    if (settings.animation === 'platonic' && !solids.length) createSolids();
+    refreshTheme();
+    createDots(); createSolids(); initScenes();
+    if (settings.animation === 'graphs' || prev === 'graphs') reloadGraphs();
     start();
   }
 
   resize();
-  reloadGraphs();
   updateFromPreferences();
   window.addEventListener('resize', resize, { passive: true });
   window.addEventListener('appearance:change', updateFromPreferences);
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stop();
-    else start();
-  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); else start(); });
   reduceMotion.addEventListener?.('change', start);
 }

@@ -1,4 +1,5 @@
 import { loadGraphFormulas, saveGraphFormulas, compileGraphExpression } from './background.js';
+import { initThemeParamsUI } from './themeParamsUI.js';
 const STORAGE_KEY = 'chat_appearance_v1';
 
 const DEFAULTS = Object.freeze({
@@ -50,7 +51,7 @@ const COLOR_KEYS = [
   'otherText', 'mineStart', 'mineEnd', 'mineText', 'chatBg'
 ];
 const VALID_CHAT_BACKGROUNDS = new Set(['glow', 'grid', 'plain']);
-const VALID_ANIMATIONS = new Set(['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'blobs', 'blobs_color', 'blob_cycle', 'polylines', 'flicker', 'solar', 'cheese', 'blackhole', 'puppet', 'wind', 'desert', 'glacier', 'sand', 'balls', 'fireworks', 'none']);
+const VALID_ANIMATIONS = new Set(['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'blobs', 'blob_cycle', 'polylines', 'flicker', 'solar', 'cheese', 'blackhole', 'puppet', 'wind', 'desert', 'glacier', 'sand', 'balls', 'fireworks', 'hater', 'none']);
 
 function isHexColor(value) {
   return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
@@ -149,6 +150,8 @@ export function initAppearance() {
   let state = loadAppearance();
   applyAppearance(state);
   syncControls(state);
+  const themeUI = initThemeParamsUI(() => state.animation);
+  themeUI.refresh();
 
   document.querySelectorAll('[data-appearance-setting]').forEach(control => {
     const eventName = control.type === 'range' || control.type === 'color' ? 'input' : 'change';
@@ -166,6 +169,7 @@ export function initAppearance() {
       saveAppearance(state);
       applyAppearance(state);
       updateRangeOutputs(state);
+      if (key === 'animation') themeUI.refresh();
       document.querySelectorAll('[data-appearance-preset]').forEach(button => button.classList.remove('active'));
     });
   });
@@ -178,6 +182,7 @@ export function initAppearance() {
       saveAppearance(state);
       applyAppearance(state);
       syncControls(state);
+      themeUI.refresh();
     });
   });
 
@@ -186,6 +191,7 @@ export function initAppearance() {
     saveAppearance(state);
     applyAppearance(state);
     syncControls(state);
+    themeUI.refresh();
   });
 
   const graphInput = document.getElementById('graphFormulasInput');

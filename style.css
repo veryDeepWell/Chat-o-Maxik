@@ -2074,57 +2074,41 @@ html[data-chat-background="plain"] #messages {
 }
 
 
-/* ========== Хейтерша слева ========== */
-.hater-panel {
-  flex: 0 0 148px;
-  width: 148px;
+
+/* ========== Тема: Хейтерша (фон, не UI чата) ========== */
+.hater-theme {
+  position: fixed;
+  left: max(12px, 2vw);
+  bottom: 8vh;
+  z-index: 1;
+  width: 160px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  padding: 12px 8px 16px;
-  border-right: 1px solid var(--border-color);
-  background: color-mix(in srgb, var(--panel-bg) 88%, transparent);
-  position: relative;
+  pointer-events: auto;
   user-select: none;
   cursor: pointer;
-  z-index: 2;
 }
+.hater-theme.hidden { display: none !important; }
+body.theme-hater .hater-theme { display: flex; }
+body:not(.theme-hater) .hater-theme { display: none !important; }
 
-.hater-bubble {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: calc(100% - 78px);
-  top: 12px;
-  max-height: 42%;
+.hater-theme .hater-bubble {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+  margin-bottom: 8px;
   opacity: 0;
-  transform: translateY(8px) scale(0.96);
+  transform: translateY(6px) scale(0.96);
   pointer-events: none;
-  z-index: 3;
-  display: flex;
-  align-items: flex-end;
 }
-
-.hater-bubble.visible {
+.hater-theme .hater-bubble.visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: none;
   transition: opacity 0.25s ease, transform 0.25s ease;
 }
-
-.hater-bubble.pop .hater-bubble-text {
-  animation: haterPop 0.35s ease;
-}
-
-@keyframes haterPop {
-  0% { transform: scale(0.92); }
-  60% { transform: scale(1.03); }
-  100% { transform: scale(1); }
-}
-
-.hater-bubble-text {
-  background: var(--panel-bg);
+.hater-theme .hater-bubble-text {
+  background: color-mix(in srgb, var(--panel-bg) 92%, transparent);
   border: 1px solid var(--border-color);
   color: var(--text-main);
   border-radius: 14px 14px 14px 4px;
@@ -2132,194 +2116,121 @@ html[data-chat-background="plain"] #messages {
   font-size: 0.72rem;
   line-height: 1.35;
   box-shadow: 0 8px 22px rgba(0,0,0,0.35);
-  max-height: 100%;
-  overflow-y: auto;
-  width: 100%;
+  backdrop-filter: blur(8px);
 }
 
-.hater-bubble-text::after {
+.hater-stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.hater-chair {
+  position: absolute;
+  bottom: 34px;
+  width: 70px;
+  height: 36px;
+  border-radius: 8px 8px 4px 4px;
+  background: color-mix(in srgb, var(--panel-bg) 80%, #000);
+  border: 1px solid var(--border-color);
+  z-index: 0;
+}
+.hater-chair::before {
   content: '';
   position: absolute;
-  /* decorative; bubble itself is relative via stage */
+  left: 8px; right: 8px; top: -18px; height: 20px;
+  border: 1px solid var(--border-color);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  background: color-mix(in srgb, var(--panel-bg) 70%, #000);
 }
-
-.hater-stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  margin-top: auto;
-  position: relative;
+.hater-phone {
+  position: absolute;
+  right: 18px;
+  bottom: 48px;
+  width: 18px;
+  height: 30px;
+  border-radius: 3px;
+  background: #1a1a1a;
+  border: 1px solid var(--accent);
+  z-index: 2;
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+.hater-phone::after {
+  content: '';
+  position: absolute;
+  inset: 3px 2px 5px;
+  background: color-mix(in srgb, var(--accent) 35%, #111);
+  border-radius: 1px;
 }
 
 .hater-body {
   width: 96px;
   height: 108px;
   position: relative;
+  z-index: 1;
 }
-
 .hater-hair {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 78px;
-  height: 58px;
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 78px; height: 58px;
   background: linear-gradient(160deg, #2a1830 0%, #5a2a55 55%, #1a0f20 100%);
   border-radius: 40px 40px 18px 18px;
-  box-shadow: inset 0 -8px 0 #1c101f;
 }
-.hater-hair::before,
-.hater-hair::after {
-  content: '';
-  position: absolute;
-  top: 36px;
-  width: 22px;
-  height: 48px;
-  background: #3d2242;
-  border-radius: 12px;
+.hater-hair::before, .hater-hair::after {
+  content: ''; position: absolute; top: 36px; width: 22px; height: 48px;
+  background: #3d2242; border-radius: 12px;
 }
 .hater-hair::before { left: -6px; transform: rotate(8deg); }
 .hater-hair::after { right: -6px; transform: rotate(-8deg); }
-
 .hater-face {
-  position: absolute;
-  top: 28px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 56px;
-  height: 52px;
+  position: absolute; top: 28px; left: 50%; transform: translateX(-50%);
+  width: 56px; height: 52px;
   background: linear-gradient(180deg, #ffd6e0, #f0b8c8);
   border-radius: 50% 50% 48% 48%;
-  border: 1px solid rgba(0,0,0,0.08);
   z-index: 1;
 }
-
 .hater-brows {
-  position: absolute;
-  top: 12px;
-  left: 8px;
-  right: 8px;
-  display: flex;
-  justify-content: space-between;
+  position: absolute; top: 12px; left: 8px; right: 8px;
+  display: flex; justify-content: space-between;
 }
 .hater-brows i {
-  display: block;
-  width: 12px;
-  height: 2px;
-  background: #3a2038;
-  border-radius: 2px;
+  display: block; width: 12px; height: 2px; background: #3a2038; border-radius: 2px;
   transform: rotate(-18deg);
 }
 .hater-brows i:last-child { transform: rotate(18deg); }
-
-.hater-panel[data-mood="angry"] .hater-brows i:first-child { transform: rotate(-28deg); }
-.hater-panel[data-mood="angry"] .hater-brows i:last-child { transform: rotate(28deg); }
-
+.hater-theme[data-mood="angry"] .hater-brows i:first-child { transform: rotate(-28deg); }
+.hater-theme[data-mood="angry"] .hater-brows i:last-child { transform: rotate(28deg); }
 .hater-eyes {
-  position: absolute;
-  top: 18px;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-around;
-  padding: 0 8px;
-  font-size: 12px;
-  line-height: 1;
-  color: #2a1528;
+  position: absolute; top: 18px; left: 0; right: 0;
+  display: flex; justify-content: space-around; padding: 0 8px;
+  font-size: 12px; color: #2a1528;
 }
-
 .hater-blush {
-  position: absolute;
-  top: 28px;
-  left: 6px;
-  right: 6px;
-  height: 6px;
-  display: flex;
-  justify-content: space-between;
+  position: absolute; top: 28px; left: 6px; right: 6px; height: 6px;
+  display: flex; justify-content: space-between;
 }
-.hater-blush::before,
-.hater-blush::after {
-  content: '';
-  width: 10px;
-  height: 5px;
-  border-radius: 50%;
+.hater-blush::before, .hater-blush::after {
+  content: ''; width: 10px; height: 5px; border-radius: 50%;
   background: rgba(255, 100, 130, 0.35);
 }
-
 .hater-mouth {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  width: 10px;
-  height: 4px;
-  margin-left: -5px;
-  border-bottom: 2px solid #a05060;
-  border-radius: 0 0 8px 8px;
+  position: absolute; bottom: 10px; left: 50%; width: 10px; height: 4px;
+  margin-left: -5px; border-bottom: 2px solid #a05060; border-radius: 0 0 8px 8px;
 }
-.hater-panel[data-mood="angry"] .hater-mouth,
-.hater-panel[data-mood="dead"] .hater-mouth {
-  width: 12px;
-  margin-left: -6px;
-  border-bottom: none;
-  border-top: 2px solid #a05060;
-  border-radius: 8px 8px 0 0;
-  bottom: 12px;
+.hater-theme[data-mood="angry"] .hater-mouth,
+.hater-theme[data-mood="dead"] .hater-mouth {
+  width: 12px; margin-left: -6px; border-bottom: none;
+  border-top: 2px solid #a05060; border-radius: 8px 8px 0 0; bottom: 12px;
 }
-.hater-panel[data-mood="smug"] .hater-mouth {
-  width: 8px;
-  border-radius: 0 0 4px 10px;
-  transform: rotate(-15deg);
-}
-
 .hater-ribbon {
-  position: absolute;
-  top: 18px;
-  right: 10px;
-  width: 14px;
-  height: 14px;
-  background: var(--accent);
-  border-radius: 3px;
-  transform: rotate(45deg);
-  z-index: 2;
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 40%, #000);
+  position: absolute; top: 18px; right: 10px; width: 14px; height: 14px;
+  background: var(--accent); border-radius: 3px; transform: rotate(45deg); z-index: 2;
 }
-
-.hater-name {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--accent);
-  letter-spacing: 0.02em;
-}
-.hater-status {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  text-align: center;
-  max-width: 120px;
-  line-height: 1.25;
-}
-
+.hater-name { font-size: 0.8rem; font-weight: 800; color: var(--accent); z-index: 2; }
+.hater-status { font-size: 0.65rem; color: var(--text-muted); text-align: center; max-width: 130px; z-index: 2; }
 .hater-smoke {
-  position: absolute;
-  top: -6px;
-  left: 50%;
-  width: 40px;
-  height: 40px;
-  transform: translateX(-50%);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 3;
+  position: absolute; top: -6px; left: 50%; width: 40px; height: 40px;
+  transform: translateX(-50%); opacity: 0; pointer-events: none; z-index: 3;
 }
 .hater-smoke.active { opacity: 1; }
 .hater-smoke span {
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  border-radius: 50%;
-  background: rgba(200, 200, 200, 0.35);
+  position: absolute; bottom: 0; left: 50%; width: 8px; height: 8px; margin-left: -4px;
+  border-radius: 50%; background: rgba(200,200,200,0.35);
   animation: haterSmoke 2.2s ease-in infinite;
 }
 .hater-smoke span:nth-child(2) { animation-delay: 0.4s; left: 40%; }
@@ -2329,14 +2240,33 @@ html[data-chat-background="plain"] #messages {
   20% { opacity: 0.5; }
   100% { transform: translateY(-36px) scale(1.4); opacity: 0; }
 }
+.hater-theme.is-smoking .hater-body { filter: brightness(0.85); }
 
-.hater-panel.is-smoking .hater-body {
-  filter: brightness(0.85);
-  opacity: 0.92;
+.theme-params-host {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
 }
+.theme-params-host.hidden { display: none; }
+.theme-params-title {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+.theme-param-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  cursor: pointer;
+}
+.graph-formulas-block.hidden { display: none !important; }
 
 @media (max-width: 900px) {
-  .hater-panel {
-    display: none;
-  }
+  .hater-theme { display: none !important; }
 }

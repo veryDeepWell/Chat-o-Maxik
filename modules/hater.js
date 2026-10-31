@@ -166,6 +166,16 @@ export function initHater({
   const root = document.getElementById('haterRoot');
   if (!root) return { say() {}, notify() {}, setSmoking() {} };
 
+  function syncThemeVisibility() {
+    const anim = document.documentElement.dataset.backgroundAnimation
+      || JSON.parse(localStorage.getItem('chat_appearance_v1') || '{}').animation;
+    const on = anim === 'hater';
+    root.classList.toggle('hidden', !on);
+    root.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+  syncThemeVisibility();
+  window.addEventListener('appearance:change', syncThemeVisibility);
+
   const bubble = root.querySelector('.hater-bubble');
   const bubbleText = root.querySelector('.hater-bubble-text');
   const face = root.querySelector('.hater-face');
