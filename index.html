@@ -35,32 +35,189 @@
   <canvas id="bgDots" class="bg-dots" aria-hidden="true"></canvas>
 
 
-  <!-- Тема «Хейтерша»: фон слева, не часть UI чата -->
-  <div id="haterRoot" class="hater-theme hidden" aria-hidden="true">
-    <div class="hater-bubble" role="status" aria-live="polite">
-      <div class="hater-bubble-text">…</div>
+  <!-- Комната Юки: локальная декоративная сцена, не связана с Firebase -->
+  <section id="haterRoot" class="hater-house hidden" data-activity="phone" data-time="night" aria-hidden="true" aria-label="Комната Хейтерши Юки">
+    <div class="hater-room-scene">
+      <svg class="hater-room-art" viewBox="0 0 520 420" role="img" aria-label="Уютная комната с окном, кухней и креслом">
+        <defs>
+          <linearGradient id="roomWall" x1="0" y1="0" x2="0.8" y2="1"><stop offset="0" stop-color="#30283b"/><stop offset="1" stop-color="#191721"/></linearGradient>
+          <linearGradient id="roomFloor" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#59414e"/><stop offset="1" stop-color="#211923"/></linearGradient>
+          <linearGradient id="windowNight" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#292b55"/><stop offset="1" stop-color="#a45d80"/></linearGradient>
+          <linearGradient id="hairShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#54405d"/><stop offset=".48" stop-color="#211b2b"/><stop offset="1" stop-color="#100f19"/></linearGradient>
+          <linearGradient id="hoodieShade" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#504152"/><stop offset="1" stop-color="#17151e"/></linearGradient>
+          <linearGradient id="skinShade" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#ffe0d5"/><stop offset="1" stop-color="#d99da7"/></linearGradient>
+          <filter id="roomGlow"><feGaussianBlur stdDeviation="5"/></filter>
+        </defs>
+        <!-- стены, пол и плинтус -->
+        <rect width="520" height="420" rx="16" fill="url(#roomWall)"/>
+        <path d="M0 310H520V420H0Z" fill="url(#roomFloor)"/>
+        <path d="M0 309H520" stroke="#9b7588" stroke-opacity=".35" stroke-width="4"/>
+        <path d="M0 328H520" stroke="#d99ab2" stroke-opacity=".08"/>
+        <!-- окно и ночной город -->
+        <g class="room-window">
+          <rect x="28" y="38" width="150" height="156" rx="8" fill="#17131f" stroke="#95718d" stroke-width="7"/>
+          <rect class="window-sky" x="36" y="46" width="134" height="140" rx="3" fill="url(#windowNight)"/>
+          <circle class="window-moon" cx="142" cy="72" r="13" fill="#f5d7bb"/>
+          <g class="window-stars" fill="#fff0d5"><circle cx="62" cy="72" r="1.7"/><circle cx="91" cy="58" r="1.4"/><circle cx="118" cy="100" r="1.5"/><circle cx="53" cy="124" r="1.2"/></g>
+          <path d="M38 154L60 131L78 148L102 119L125 145L147 126L169 151V186H38Z" fill="#30283e"/>
+          <path d="M36 46H171M103 46V186" stroke="#ad849e" stroke-width="4" fill="none"/>
+          <path d="M21 190H185" stroke="#bd91a4" stroke-width="5" stroke-linecap="round"/>
+          <path d="M33 194L48 222H164L178 194" fill="#5c3d55" opacity=".72"/>
+        </g>
+        <!-- постеры и полка -->
+        <g opacity=".96">
+          <rect x="222" y="38" width="61" height="82" rx="3" fill="#241b2c" stroke="#80617a" stroke-width="3"/>
+          <path d="M235 98Q251 54 270 98" fill="none" stroke="#d384a8" stroke-width="3"/>
+          <circle cx="253" cy="68" r="12" fill="#a25b80" opacity=".75"/>
+          <rect x="300" y="47" width="55" height="69" rx="3" fill="#282036" stroke="#80617a" stroke-width="3"/>
+          <path d="M312 96L324 68L344 96" fill="none" stroke="#d4a1b8" stroke-width="3"/>
+          <path d="M200 135H365" stroke="#a77d8d" stroke-width="8" stroke-linecap="round"/>
+          <path d="M216 134V153M352 134V153" stroke="#4a3549" stroke-width="5"/>
+          <g fill="#4c7660"><path d="M222 130Q205 95 216 88Q235 105 222 130"/><path d="M229 130Q236 91 250 95Q252 115 229 130"/><path d="M214 131Q190 112 198 103Q216 107 214 131"/></g>
+          <path d="M209 130H235L231 148H213Z" fill="#b56e81"/>
+          <rect x="272" y="111" width="7" height="22" fill="#c7a0a7"/><rect x="287" y="117" width="7" height="16" fill="#8b6889"/>
+        </g>
+        <!-- кухня слева -->
+        <g class="room-kitchen">
+          <rect x="0" y="240" width="190" height="69" fill="#40303f" stroke="#73516a" stroke-width="3"/>
+          <path d="M0 258H190" stroke="#b98294" stroke-width="7"/>
+          <rect x="8" y="270" width="42" height="36" fill="#2b202d" stroke="#79576a"/>
+          <rect x="58" y="270" width="42" height="36" fill="#2b202d" stroke="#79576a"/>
+          <rect x="108" y="270" width="72" height="36" fill="#2b202d" stroke="#79576a"/>
+          <path d="M27 285H32M77 285H82M142 285H150" stroke="#bf94a4" stroke-width="2"/>
+          <rect x="48" y="218" width="57" height="28" rx="5" fill="#4b4350" stroke="#92758b" stroke-width="3"/>
+          <path d="M55 219Q60 197 78 197Q97 199 99 219" fill="#282633" stroke="#b08b9c" stroke-width="3"/>
+          <path d="M65 199Q70 188 81 199" fill="none" stroke="#d1a0ae" stroke-width="2"/>
+          <circle cx="77" cy="214" r="3" fill="#e6a8b4"/>
+          <path d="M126 240V220H147V240" fill="#2b2633" stroke="#9b7184" stroke-width="3"/>
+          <path d="M130 220Q136 208 143 220" fill="none" stroke="#e6a8b4" stroke-width="2"/>
+          <rect x="154" y="215" width="22" height="28" rx="3" fill="#8a5c6f"/>
+          <path d="M165 215V205" stroke="#cba5a9" stroke-width="3"/>
+        </g>
+        <!-- торшер -->
+        <g class="room-lamp">
+          <path d="M467 132V307" stroke="#b28b99" stroke-width="5"/>
+          <path d="M443 136Q467 105 491 136L483 158H451Z" fill="#e3a4a9"/>
+          <ellipse cx="467" cy="148" rx="25" ry="8" fill="#ffc7b2" opacity=".22" filter="url(#roomGlow)"/>
+          <path d="M449 307H486" stroke="#b28b99" stroke-width="5" stroke-linecap="round"/>
+        </g>
+        <!-- кресло -->
+        <g class="room-armchair">
+          <path d="M292 236Q281 192 312 177Q368 147 431 181Q468 200 460 267L451 354H310Z" fill="#493448" stroke="#90627e" stroke-width="7"/>
+          <path d="M307 235Q315 203 344 197Q399 185 438 211L440 315H313Z" fill="#322638"/>
+          <path d="M294 272Q275 246 284 225Q295 204 318 222L332 340H303Z" fill="#77516e" stroke="#956d84" stroke-width="4"/>
+          <path d="M438 224Q459 203 477 224Q490 244 468 281L455 340H431Z" fill="#77516e" stroke="#956d84" stroke-width="4"/>
+          <path d="M315 347L308 392M450 347L458 392" stroke="#271c2b" stroke-width="10" stroke-linecap="round"/>
+          <path d="M325 217Q365 194 421 219" fill="none" stroke="#c58ba1" stroke-opacity=".25" stroke-width="4"/>
+        </g>
+        <!-- ковёр и журнальный столик -->
+        <ellipse cx="333" cy="390" rx="155" ry="20" fill="#a85d7a" opacity=".22"/>
+        <path d="M185 363Q326 338 470 366L495 410H166Z" fill="#6b3e60" opacity=".5"/>
+        <path d="M202 379Q330 356 462 380" fill="none" stroke="#d88aa9" stroke-opacity=".35" stroke-width="2"/>
+        <!-- поза: кресло, телефон -->
+        <g class="hater-pose pose-phone hater-interactive">
+          <!-- ноги и чулки -->
+          <path d="M349 267Q322 285 316 320Q313 340 344 345L393 317Q405 298 389 278Z" fill="#171620" stroke="#6e526d" stroke-width="4"/>
+          <path d="M378 274Q416 272 445 294Q463 310 447 331L405 345Q382 332 374 313Z" fill="#1a1823" stroke="#775c78" stroke-width="4"/>
+          <path d="M326 318L379 295M330 330L386 307M390 309L453 311M393 322L447 326" stroke="#9b6b8c" stroke-width="5" opacity=".85"/>
+          <path d="M329 345Q349 350 365 339L377 351Q354 367 325 359Z" fill="#b77a88"/>
+          <path d="M405 344Q430 347 448 333L462 346Q443 367 409 359Z" fill="#b77a88"/>
+          <!-- туловище и худи -->
+          <path d="M337 165Q361 145 397 157Q428 171 433 213L422 286Q383 303 337 278L319 218Q319 183 337 165Z" fill="url(#hoodieShade)" stroke="#766079" stroke-width="4"/>
+          <path d="M350 171Q365 196 378 202Q396 196 410 172" fill="none" stroke="#8b6d8f" stroke-width="4"/>
+          <path d="M374 203L384 224L393 203" fill="none" stroke="#c5a3b8" stroke-width="2"/>
+          <circle cx="385" cy="227" r="4" fill="#d9a4bc"/>
+          <path d="M347 186Q330 199 338 232L354 240Q369 216 365 195" fill="#302536" stroke="#90728c" stroke-width="3"/>
+          <path d="M415 184Q434 194 432 222L410 246Q397 230 402 202" fill="#302536" stroke="#90728c" stroke-width="3"/>
+          <!-- шея, голова -->
+          <path d="M365 151L362 174Q379 190 397 171L391 149Z" fill="url(#skinShade)"/>
+          <ellipse cx="379" cy="116" rx="43" ry="49" fill="url(#skinShade)"/>
+          <!-- волосы сзади -->
+          <path d="M336 123Q318 74 355 55Q389 39 423 67Q453 93 433 153L426 222Q410 241 398 214L409 133Q382 157 351 143L348 206Q325 209 318 174Z" fill="url(#hairShade)" stroke="#78617e" stroke-width="3"/>
+          <path d="M344 75Q368 48 399 59Q426 70 435 103Q419 90 407 94Q381 77 361 100Q347 116 336 137Q327 103 344 75Z" fill="#35273e"/>
+          <!-- чёлка -->
+          <path d="M339 105Q338 63 377 61Q418 59 423 99Q407 90 395 103L386 129L379 95L362 126L357 99L344 134Z" fill="#241d2e" stroke="#67516e" stroke-width="2"/>
+          <path d="M353 84Q368 68 386 71" stroke="#a17b9e" stroke-width="3" opacity=".5" fill="none"/>
+          <!-- заколки -->
+          <path d="M408 82L424 97M412 76L430 91" stroke="#d98ba9" stroke-width="4" stroke-linecap="round"/>
+          <!-- лицо -->
+          <path d="M350 117Q361 106 372 115M389 115Q401 106 411 116" stroke="#392839" stroke-width="4" stroke-linecap="round" fill="none"/>
+          <path d="M355 125Q365 133 375 125Q365 137 355 125Z" fill="#9b5476"/>
+          <path d="M389 125Q400 133 410 125Q400 137 389 125Z" fill="#9b5476"/>
+          <ellipse cx="367" cy="127" rx="3" ry="5" fill="#e9a3c2"/><ellipse cx="400" cy="127" rx="3" ry="5" fill="#e9a3c2"/>
+          <path d="M382 130L379 141L384 142" stroke="#b87d88" stroke-width="2" fill="none"/>
+          <path d="M372 151Q381 146 390 151" stroke="#894e67" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <path d="M350 145Q359 151 367 146M399 146Q407 151 414 144" stroke="#dc819a" stroke-width="5" opacity=".35" fill="none"/>
+          <!-- руки и телефон -->
+          <path d="M343 204Q353 214 368 220L386 205Q396 199 400 208Q403 217 392 226L369 243Q355 245 340 230Z" fill="url(#skinShade)" stroke="#b17d8e" stroke-width="3"/>
+          <path d="M406 207Q421 211 424 228L415 245Q404 246 398 232L393 219Z" fill="url(#skinShade)" stroke="#b17d8e" stroke-width="3"/>
+          <g class="phone-prop" transform="rotate(-12 405 224)">
+            <rect x="391" y="202" width="25" height="43" rx="5" fill="#171522" stroke="#d88aaa" stroke-width="3"/>
+            <rect x="394" y="207" width="19" height="31" rx="2" fill="#70507b"/>
+            <path d="M399 220Q403 213 408 220Q403 227 399 220Z" fill="#ffb0d1"/>
+            <circle cx="403" cy="241" r="1.5" fill="#e9bdd2"/>
+          </g>
+          <!-- чай в руке во время короткого перерыва -->
+          <g class="snack-prop">
+            <path d="M394 207H419L416 237Q405 244 397 236Z" fill="#ad718d" stroke="#e2acc5" stroke-width="3"/>
+            <path d="M418 213Q434 208 430 225Q427 234 417 230" fill="none" stroke="#e2acc5" stroke-width="4"/>
+            <path d="M399 213Q408 217 417 213" stroke="#f0c4d2" stroke-width="3" fill="none"/>
+            <path d="M402 202Q397 194 405 190M411 202Q406 192 414 187" stroke="#e1b5c9" stroke-width="2" stroke-linecap="round" fill="none" opacity=".8"/>
+          </g>
+          <!-- книга вместо телефона, когда она читает -->
+          <g class="reading-prop">
+            <path d="M385 208Q401 200 414 211V242Q399 233 385 243Z" fill="#68425f" stroke="#d99bb8" stroke-width="3"/>
+            <path d="M414 211Q427 201 440 207V239Q427 233 414 242Z" fill="#49344f" stroke="#d99bb8" stroke-width="3"/>
+            <path d="M414 211V242M391 217Q400 213 407 218M391 225Q400 221 407 226M421 216Q429 212 436 215M421 225Q429 221 436 224" stroke="#f0d1dc" stroke-opacity=".7" stroke-width="1.6" fill="none"/>
+          </g>
+        </g>
+        <!-- поза: готовит на кухне -->
+        <g class="hater-pose pose-cooking hater-interactive">
+          <path d="M100 190Q122 168 151 186L160 278H96Z" fill="#302536" stroke="#8b6c85" stroke-width="4"/>
+          <path d="M104 274L107 343H132L139 277M142 277L151 343H176L165 273" fill="#201c29" stroke="#6f536e" stroke-width="4"/>
+          <path d="M109 331H133M151 331H178" stroke="#bd8398" stroke-width="5"/>
+          <path d="M111 186L116 228L145 228L153 186" fill="#5b3d55" stroke="#d19aad" stroke-width="3"/>
+          <path d="M125 189Q134 210 140 189" fill="none" stroke="#d19aad" stroke-width="3"/>
+          <path d="M100 195Q81 208 64 233L81 245L117 221M151 194Q173 197 190 219L177 236L149 222" fill="#302536" stroke="#8b6c85" stroke-width="4"/>
+          <path d="M61 231L79 241M176 230L191 217" stroke="#f3c8bc" stroke-width="12" stroke-linecap="round"/>
+          <path d="M111 145L108 177Q128 195 151 175L145 144Z" fill="url(#skinShade)"/>
+          <ellipse cx="129" cy="111" rx="39" ry="45" fill="url(#skinShade)"/>
+          <path d="M91 114Q83 65 122 57Q164 47 171 93Q177 143 158 174L147 196L143 123Q122 145 99 129L101 181Q83 177 81 148Z" fill="url(#hairShade)" stroke="#78617e" stroke-width="3"/>
+          <path d="M91 105Q91 65 128 64Q164 62 168 103Q151 91 143 109L130 126L123 99L108 128L101 101Z" fill="#241d2e"/>
+          <path d="M104 115Q114 106 123 115M137 115Q147 106 157 115" stroke="#392839" stroke-width="4" fill="none" stroke-linecap="round"/>
+          <path d="M108 124Q116 132 124 124M140 124Q148 132 156 124" fill="#9b5476"/>
+          <ellipse cx="117" cy="126" rx="2.8" ry="4.5" fill="#e9a3c2"/><ellipse cx="148" cy="126" rx="2.8" ry="4.5" fill="#e9a3c2"/>
+          <path d="M128 132L126 141L131 142M119 153Q130 158 140 151" stroke="#aa6c7e" stroke-width="2" fill="none"/>
+          <path d="M119 158Q130 167 142 157" fill="none" stroke="#d995a7" stroke-width="3"/>
+          <path d="M190 218L199 190" stroke="#d9a6b4" stroke-width="4" stroke-linecap="round"/>
+          <path d="M197 191L204 175" stroke="#c5a6b8" stroke-width="5" stroke-linecap="round"/>
+          <path d="M65 242Q77 235 86 245" fill="none" stroke="#f0c3bd" stroke-width="9" stroke-linecap="round"/>
+        </g>
+        <!-- поза: спит на диване -->
+        <g class="hater-pose pose-sleeping hater-interactive">
+          <path d="M305 270Q325 230 380 246Q421 259 454 291L437 345Q377 362 312 326Z" fill="#392a40" stroke="#a47791" stroke-width="4"/>
+          <path d="M330 283Q362 259 405 285Q432 303 443 327Q390 356 332 328Z" fill="#292331"/>
+          <ellipse cx="370" cy="265" rx="43" ry="34" fill="url(#skinShade)"/>
+          <path d="M331 266Q318 222 364 220Q410 211 422 250Q410 241 397 246L384 266L375 240L357 269L346 248L338 282Z" fill="url(#hairShade)" stroke="#806584" stroke-width="3"/>
+          <path d="M343 266Q354 274 365 266M380 266Q391 274 402 266" fill="none" stroke="#493047" stroke-width="3" stroke-linecap="round"/>
+          <path d="M373 276Q380 279 386 275" stroke="#a66c80" stroke-width="2" fill="none"/>
+          <path d="M322 298Q363 282 403 305L453 340Q415 376 354 352Q317 336 322 298Z" fill="#5a455d" stroke="#9c7897" stroke-width="4"/>
+          <path d="M345 310Q383 319 430 346" fill="none" stroke="#b991b0" stroke-width="3" opacity=".5"/>
+          <text x="422" y="242" class="sleep-z" font-size="22" fill="#d6b4d6">Z</text>
+          <text x="444" y="221" class="sleep-z sleep-z-2" font-size="15" fill="#d6b4d6">z</text>
+        </g>
+        <!-- кот у ковра -->
+        <g class="room-cat">
+          <ellipse cx="214" cy="380" rx="24" ry="12" fill="#17151d"/>
+          <path d="M194 375L193 359L205 367L215 358L225 368L236 360L234 379Q220 394 198 384Z" fill="#b6a5ae"/>
+          <path d="M203 376L208 376M222 376L226 376" stroke="#332535" stroke-width="3" stroke-linecap="round"/>
+          <path d="M235 380Q255 377 246 360" fill="none" stroke="#b6a5ae" stroke-width="5" stroke-linecap="round"/>
+        </g>
+      </svg>
     </div>
-    <div class="hater-stage">
-      <div class="hater-smoke" aria-hidden="true"><span></span><span></span><span></span></div>
-      <div class="hater-chair" aria-hidden="true"></div>
-      <div class="hater-body">
-        <div class="hater-hair"></div>
-        <div class="hater-face">
-          <div class="hater-brows"><i></i><i></i></div>
-          <div class="hater-eyes">
-            <span class="hater-eye hater-eye-l">・</span>
-            <span class="hater-eye hater-eye-r">・</span>
-          </div>
-          <div class="hater-blush"></div>
-          <div class="hater-mouth"></div>
-        </div>
-        <div class="hater-ribbon"></div>
-      </div>
-      <div class="hater-phone" aria-hidden="true"></div>
-      <div class="hater-name">Юки</div>
-      <div class="hater-status">вынуждена быть здесь</div>
-    </div>
-  </div>
+    <div class="hater-dialogue-stack" aria-live="polite" aria-relevant="additions" aria-label="Реплики Юки"></div>
+    <div class="hater-statusbar"><span class="hater-live-dot"></span><strong class="hater-name">Юки</strong><span class="hater-status">сидит в кресле, листает телефон</span></div>
+  </section>
 
   <!-- Основной контент -->
   <main class="main-content">

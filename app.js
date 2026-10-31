@@ -127,6 +127,7 @@ async function sendCurrentMessage() {
     if (!text && !editingTarget.image) return;
     const targetId = editingTarget.id;
     const saved = await updateTextMessage(targetId, text);
+    if (saved) hater?.onEditSaved?.();
     if (saved && editingTarget?.id === targetId) {
       const pendingDraft = messageInput.value.trim() === text ? '' : messageInput.value;
       clearEdit({ clearInput: false });
@@ -152,7 +153,7 @@ async function sendCurrentMessage() {
       replyLocal: replyLocalDefault,
     });
     if (result.handled) {
-      hater?.onUserText?.(text);
+      hater?.onCommand?.(text, result);
       if (messageInput.value === submittedInputValue) {
         messageInput.value = '';
         stopTyping();
@@ -168,7 +169,7 @@ async function sendCurrentMessage() {
   
   if (!sent) return;
 
-  hater?.onUserText?.(text);
+  hater?.onUserText?.(text, { isReply: Boolean(submittedReply) });
 
   if (messageInput.value === submittedInputValue) {
     messageInput.value = '';
@@ -304,6 +305,7 @@ function clearReply() {
 }
 
 document.addEventListener('chat:reply', (event) => {
+  hater?.onReplyStarted?.(event.detail);
   const draft = editingTarget ? draftBeforeEdit : messageInput.value;
   if (editingTarget) clearEdit({ clearInput: false, restoreDraft: true });
   else clearEdit({ clearInput: false });
@@ -319,6 +321,7 @@ document.addEventListener('chat:reply', (event) => {
 document.getElementById('cancelReplyBtn').addEventListener('click', clearReply);
 
 document.addEventListener('chat:edit', (event) => {
+  hater?.onEditStarted?.(event.detail);
   const draft = editingTarget ? draftBeforeEdit : messageInput.value;
   if (editingTarget) clearEdit({ clearInput: false, restoreDraft: true });
   draftBeforeEdit = draft ?? '';
@@ -547,6 +550,7 @@ const searchResults = document.getElementById('searchResults');
 const searchStatus = document.getElementById('searchStatus');
 
 document.getElementById('searchChatBtn')?.addEventListener('click', () => {
+  hater?.onSearch?.('');
   searchModal.classList.remove('hidden');
   setTimeout(() => searchQuery.focus(), 20);
 });
@@ -571,6 +575,7 @@ searchForm?.addEventListener('submit', async event => {
       }
     });
     searchResults.replaceChildren();
+    hater?.onSearch?.(query, { found: results.length });
     if (!results.length) {
       searchStatus.textContent = `По запросу «${query}» ничего не найдено.`;
       return;
@@ -739,11 +744,11 @@ document.addEventListener('chat:away', (e) => {
 });
 
 initImageViewer();
-initAuth(showChat, showLogin);
 listenTypingStatus();
 initAppearance();
 initBackgroundAnimation();
-hater = initHater({ getIdleMs: () => 1000 * 90 });
+hater = initHater();
+initAuth(showChat, showLogin);
 
 initCommandsPanel({
   onInsert: (snippet) => {

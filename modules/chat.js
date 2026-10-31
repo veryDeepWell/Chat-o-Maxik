@@ -13,6 +13,7 @@ let oldestLoadedKey = null;
 let loadingOlder = false;
 let hasOlder = true;
 const loadedIds = new Set();
+const knownMessageContent = new Map();
 let pendingReadUpdates = {};
 let readUpdateScheduled = false;
 
@@ -48,6 +49,7 @@ function renderSnapshot(snapshot, prepend = false) {
   if (!data || loadedIds.has(id)) return false;
 
   loadedIds.add(id);
+  knownMessageContent.set(id, { name: data.name || '', text: data.text || '', image: Boolean(data.image), attachmentName: data.attachment?.name || '', edited: Boolean(data.edited) });
   displayMessage(
     data.name, data.text || '', data.image || null, activeUser,
     data.read || false, id, data.timestamp, data.replyTo || null,
@@ -61,6 +63,13 @@ function renderSnapshot(snapshot, prepend = false) {
 function renderChangedSnapshot(snapshot) {
   const data = snapshot.val();
   if (!data || !loadedIds.has(snapshot.key)) return;
+  const previous = knownMessageContent.get(snapshot.key);
+  const nextContent = { name: data.name || '', text: data.text || '', image: Boolean(data.image), attachmentName: data.attachment?.name || '', edited: Boolean(data.edited) };
+  const contentChanged = previous && (previous.text !== nextContent.text || previous.image !== nextContent.image || previous.attachmentName !== nextContent.attachmentName);
+  knownMessageContent.set(snapshot.key, nextContent);
+  if (contentChanged && data.name !== activeUser && data.edited) {
+    document.dispatchEvent(new CustomEvent('hater:incoming-edit', { detail: { name: data.name || '', text: data.text || '' } }));
+  }
   displayMessage(
     data.name, data.text || '', data.image || null, activeUser,
     data.read || false, snapshot.key, data.timestamp, data.replyTo || null,
@@ -70,6 +79,20 @@ function renderChangedSnapshot(snapshot) {
   else markMessageAsRead(snapshot.key, data);
 }
 
+function notifyLocalHater(data) {
+  // Клиентское событие для локального NPC. Не пишет ничего в Firebase.
+  document.dispatchEvent(new CustomEvent('hater:incoming-message', {
+    detail: {
+      name: data?.name || '',
+      text: data?.text || '',
+      image: Boolean(data?.image),
+      attachment: data?.attachment ? { name: data.attachment.name || '', type: data.attachment.type || '' } : null,
+      replyTo: data?.replyTo || null,
+      timestamp: data?.timestamp || 0,
+    },
+  }));
+}
+
 export function listenForMessages(user) {
   const listenerGeneration = ++sessionGeneration;
   activeUser = user;
@@ -77,6 +100,7 @@ export function listenForMessages(user) {
   hasOlder = true;
   loadingOlder = false;
   loadedIds.clear();
+  knownMessageContent.clear();
   pendingReadUpdates = {};
 
   const messagesDiv = document.getElementById('messages');
@@ -104,6 +128,7 @@ export function listenForMessages(user) {
     renderSnapshot(snapshot, false);
     if (!wasLoaded && initialHistoryLoaded && data && data.name !== user) {
       showNotification(data.name, data.text || '', !!data.image);
+      notifyLocalHater(data);
     }
   });
 
@@ -122,6 +147,7 @@ export function listenForMessages(user) {
     const element = findRenderedMessage(id);
     if (element) element.remove();
     loadedIds.delete(id);
+    knownMessageContent.delete(id);
     if (oldestLoadedKey === id) {
       const firstLoaded = document.querySelector('#messages .message');
       oldestLoadedKey = firstLoaded ? firstLoaded.dataset.id : null;
@@ -160,6 +186,7 @@ export function listenForMessages(user) {
         renderSnapshot(child, false);
         if (!wasLoaded && !initialIds.has(child.key) && data && data.name !== user) {
           showNotification(data.name, data.text || '', !!data.image);
+          notifyLocalHater(data);
         }
       }
       pendingAdded = [];
