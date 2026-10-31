@@ -1,7 +1,8 @@
+import * as Scenes from './bgScenes.js';
 const STORAGE_KEY = 'chat_appearance_v1';
 const GRAPHS_KEY = 'chat_graph_formulas';
 const DEFAULTS = { animation: 'dots', speed: 1, density: 75, opacity: 65 };
-const ANIMATIONS = ['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'none'];
+const ANIMATIONS = ['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'blobs', 'blobs_color', 'blob_cycle', 'polylines', 'flicker', 'solar', 'cheese', 'blackhole', 'puppet', 'wind', 'desert', 'glacier', 'sand', 'balls', 'fireworks', 'none'];
 
 function readSettings() {
   try {
@@ -227,6 +228,15 @@ export function initBackgroundAnimation() {
   let dots = [];
   let solids = [];
   let graphFns = [];
+  let sceneBlobs = [];
+  let sceneBlobCycle = null;
+  let scenePolylines = [];
+  let sceneFlicker = [];
+  let sceneCheese = null;
+  let sceneWind = [];
+  let sceneSand = [];
+  let sceneBalls = [];
+  let sceneFireworks = null;
   let phase = 0;
   let lastFrame = 0;
   let frameId = 0;
@@ -244,6 +254,7 @@ export function initBackgroundAnimation() {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     createDots();
     createSolids();
+    initScenes();
     drawStatic();
   }
 
@@ -258,6 +269,19 @@ export function initBackgroundAnimation() {
       phase: Math.random() * Math.PI * 2,
       alpha: Math.random() * 0.3 + 0.35,
     }));
+  }
+
+
+  function initScenes() {
+    sceneBlobs = Scenes.createBlobs(width, height, settings.density, settings.animation === 'blobs_color');
+    sceneBlobCycle = Scenes.createBlobCycle(width, height);
+    scenePolylines = Scenes.createPolylines(width, height);
+    sceneFlicker = Scenes.createFlicker(width, height, settings.density);
+    sceneCheese = Scenes.createCheese(width, height);
+    sceneWind = Scenes.createWind(width, height, settings.density);
+    sceneSand = Scenes.createSand(width, height, settings.density);
+    sceneBalls = Scenes.createBalls(width, height, settings.density);
+    sceneFireworks = Scenes.createFireworks();
   }
 
   function createSolids() {
@@ -573,15 +597,38 @@ export function initBackgroundAnimation() {
     });
   }
 
+  function drawScene(delta = 16) {
+    const env = { width, height, delta, speed: settings.speed, opacity: settings.opacity, accent, phase };
+    switch (settings.animation) {
+      case 'dots': drawDots(delta); break;
+      case 'orbits': drawOrbits(); break;
+      case 'math': drawMath(); break;
+      case 'platonic': drawPlatonic(delta); break;
+      case 'tesseract': drawTesseract(); break;
+      case 'graphs': drawGraphs(); break;
+      case 'blobs': Scenes.drawBlobs(ctx, sceneBlobs, { ...env, colored: false }); break;
+      case 'blobs_color': Scenes.drawBlobs(ctx, sceneBlobs, { ...env, colored: true }); break;
+      case 'blob_cycle': Scenes.drawBlobCycle(ctx, sceneBlobCycle, env); break;
+      case 'polylines': Scenes.drawPolylines(ctx, scenePolylines, env); break;
+      case 'flicker': Scenes.drawFlicker(ctx, sceneFlicker, env); break;
+      case 'solar': Scenes.drawSolarSystem(ctx, env); break;
+      case 'cheese': Scenes.drawCheese(ctx, sceneCheese, env); break;
+      case 'blackhole': Scenes.drawBlackHole(ctx, env); break;
+      case 'puppet': Scenes.drawPuppetWaves(ctx, env); break;
+      case 'wind': Scenes.drawWind(ctx, sceneWind, env); break;
+      case 'desert': Scenes.drawDesert(ctx, env); break;
+      case 'glacier': Scenes.drawGlacier(ctx, env); break;
+      case 'sand': Scenes.drawSand(ctx, sceneSand, env); break;
+      case 'balls': Scenes.drawBalls(ctx, sceneBalls, env); break;
+      case 'fireworks': Scenes.drawFireworks(ctx, sceneFireworks, env); break;
+      default: break;
+    }
+  }
+
   function drawStatic() {
     clear();
     if (settings.animation === 'none' || reduceMotion.matches) return;
-    if (settings.animation === 'dots') drawDots(16);
-    else if (settings.animation === 'orbits') drawOrbits();
-    else if (settings.animation === 'math') drawMath();
-    else if (settings.animation === 'platonic') drawPlatonic(16);
-    else if (settings.animation === 'tesseract') drawTesseract();
-    else if (settings.animation === 'graphs') drawGraphs();
+    drawScene(16);
   }
 
   function stop() {
@@ -600,12 +647,7 @@ export function initBackgroundAnimation() {
     lastFrame = now;
     phase += 0.012 * settings.speed * (delta / frameInterval);
     clear();
-    if (settings.animation === 'dots') drawDots(delta);
-    else if (settings.animation === 'orbits') drawOrbits();
-    else if (settings.animation === 'math') drawMath();
-    else if (settings.animation === 'platonic') drawPlatonic(delta);
-    else if (settings.animation === 'tesseract') drawTesseract();
-    else if (settings.animation === 'graphs') drawGraphs();
+    drawScene(delta);
     frameId = requestAnimationFrame(frame);
   }
 
@@ -622,9 +664,10 @@ export function initBackgroundAnimation() {
     const previousAnim = settings.animation;
     settings = readSettings();
     accent = parseHex(getComputedStyle(document.documentElement).getPropertyValue('--accent').trim());
-    if (previousDensity !== settings.density) {
+    if (previousDensity !== settings.density || previousAnim !== settings.animation) {
       createDots();
       createSolids();
+      initScenes();
     }
     if (settings.animation === 'graphs' || previousAnim === 'graphs') reloadGraphs();
     if (settings.animation === 'platonic' && !solids.length) createSolids();

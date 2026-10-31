@@ -50,7 +50,7 @@ const COLOR_KEYS = [
   'otherText', 'mineStart', 'mineEnd', 'mineText', 'chatBg'
 ];
 const VALID_CHAT_BACKGROUNDS = new Set(['glow', 'grid', 'plain']);
-const VALID_ANIMATIONS = new Set(['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'none']);
+const VALID_ANIMATIONS = new Set(['dots', 'orbits', 'math', 'platonic', 'tesseract', 'graphs', 'blobs', 'blobs_color', 'blob_cycle', 'polylines', 'flicker', 'solar', 'cheese', 'blackhole', 'puppet', 'wind', 'desert', 'glacier', 'sand', 'balls', 'fireworks', 'none']);
 
 function isHexColor(value) {
   return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
